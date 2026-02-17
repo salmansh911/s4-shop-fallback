@@ -23,8 +23,6 @@ export default function CartPage() {
   const removeItem = useCartStore((state) => state.removeItem);
 
   const subtotal = cartSubtotal(items);
-  const deposit = Math.round(subtotal * 0.5);
-  const balance = subtotal - deposit;
 
   return (
     <main className="mx-auto max-w-[1520px] p-3 pb-8 sm:p-6">
@@ -84,8 +82,7 @@ export default function CartPage() {
                 <h2 className="text-xl font-semibold text-slate-900">Order Summary</h2>
                 <div className="mt-4 space-y-2 text-sm">
                   <p className="flex justify-between"><span>Subtotal</span><strong>{money(subtotal)}</strong></p>
-                  <p className="flex justify-between text-primary"><span>Pay today (50%)</span><strong>{money(deposit)}</strong></p>
-                  <p className="flex justify-between"><span>On delivery</span><strong>{money(balance)}</strong></p>
+                  <p className="flex justify-between text-primary"><span>Total payable</span><strong>{money(subtotal)}</strong></p>
                 </div>
 
                 <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">

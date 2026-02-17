@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { markOrderDepositPaid } from "@/lib/supabase-rest";
+import { markOrderPaid } from "@/lib/supabase-rest";
 
 type StripeWebhookEvent = {
   id: string;
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       const orderId = session.metadata?.order_id ?? session.client_reference_id;
 
       if (paid && orderId) {
-        await markOrderDepositPaid(orderId);
+        await markOrderPaid(orderId);
       }
     }
 

@@ -9,8 +9,8 @@ type CheckoutBody = {
     price: number;
   }>;
   subtotal: number;
-  depositAmount: number;
   customerEmail: string;
+  paymentMethod: "stripe" | "cod";
   deliveryDetails: {
     restaurantName: string;
     address: string;
@@ -32,20 +32,14 @@ function buildOrderNumber() {
 
 export async function POST(request: NextRequest) {
   try {
-    const stripeSecret = process.env.STRIPE_SECRET_KEY;
-    if (!stripeSecret) {
-      return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
-    }
-
     const body = (await request.json()) as CheckoutBody;
-    if (!body.items?.length || !body.customerEmail || !body.depositAmount) {
+    if (!body.items?.length || !body.customerEmail || !body.paymentMethod) {
       return NextResponse.json({ error: "Invalid checkout payload" }, { status: 400 });
     }
 
     const computedSubtotal = body.items.reduce((sum, item) => sum + item.qty * item.price, 0);
-    const computedDeposit = Math.round(computedSubtotal * 0.5);
-    if (Math.abs(computedDeposit - Math.round(body.depositAmount)) > 0) {
-      return NextResponse.json({ error: "Invalid deposit amount" }, { status: 400 });
+    if (Math.abs(computedSubtotal - Math.round(body.subtotal || 0)) > 0) {
+      return NextResponse.json({ error: "Invalid order total" }, { status: 400 });
     }
 
     const orderId = crypto.randomUUID();
@@ -60,18 +54,41 @@ export async function POST(request: NextRequest) {
       unit_price: item.price,
     }));
 
-    await createOrder({
+    const paidNow = body.paymentMethod === "stripe" ? computedSubtotal : 0;
+    const orderStatus = body.paymentMethod === "stripe" ? "pending" : "pending";
+
+    const orderResult = await createOrder({
       id: orderId,
       order_number: orderNumber,
       user_id: demoUserId,
       items: orderItems,
       total_amount: computedSubtotal,
-      deposit_amount: computedDeposit,
+      deposit_amount: paidNow,
       delivery_date: body.deliveryDetails.deliveryDate,
-      special_instructions: `${body.deliveryDetails.restaurantName} | ${body.deliveryDetails.address} | ${body.deliveryDetails.contactName} ${body.deliveryDetails.contactPhone}`,
+      status: orderStatus,
+      deposit_paid: false,
+      special_instructions: `payment_method=${body.paymentMethod}; restaurant=${body.deliveryDetails.restaurantName}; address=${body.deliveryDetails.address}; contact=${body.deliveryDetails.contactName} ${body.deliveryDetails.contactPhone}`,
     });
 
+    if (!orderResult.data) {
+      return NextResponse.json({ error: "Unable to create order" }, { status: 500 });
+    }
+
     const origin = request.nextUrl.origin;
+
+    if (body.paymentMethod === "cod") {
+      return NextResponse.json({
+        url: `${origin}/orders/${orderId}`,
+        orderId,
+        orderNumber,
+      });
+    }
+
+    const stripeSecret = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecret) {
+      return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
+    }
+
     const successUrl = `${origin}/orders/${orderId}?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${origin}/checkout?canceled=1`;
 
@@ -83,16 +100,16 @@ export async function POST(request: NextRequest) {
     params.append("customer_email", body.customerEmail);
     params.append("line_items[0][quantity]", "1");
     params.append("line_items[0][price_data][currency]", "aed");
-    params.append("line_items[0][price_data][unit_amount]", `${computedDeposit * 100}`);
+    params.append("line_items[0][price_data][unit_amount]", `${computedSubtotal * 100}`);
     params.append(
       "line_items[0][price_data][product_data][name]",
-      `TurnKey Deposit (${orderNumber})`,
+      `S4 Order (${orderNumber})`,
     );
     params.append("metadata[order_id]", orderId);
     params.append("metadata[order_number]", orderNumber);
     params.append("metadata[delivery_date]", body.deliveryDetails.deliveryDate);
     params.append("metadata[subtotal]", `${computedSubtotal}`);
-    params.append("metadata[deposit_amount]", `${computedDeposit}`);
+    params.append("metadata[payment_method]", "stripe");
 
     const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",

@@ -9,6 +9,8 @@ export type Product = {
   certifications: string[];
   stock_level: number;
   stock_status: "In Stock" | "Low Stock" | "Pre-order";
+  ideal_for?: string;
+  dish_ideas?: string[];
   ai_note?: string;
 };
 
@@ -28,6 +30,7 @@ export type Order = {
   total_amount: number;
   deposit_amount: number;
   deposit_paid: boolean;
+  special_instructions?: string;
   items: OrderItem[];
 };
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CheckCircle2, Clock3, PackageCheck, Truck } from "lucide-react";
-import { getOrderById, markOrderDepositPaid } from "@/lib/supabase-rest";
+import { getOrderById, markOrderPaid } from "@/lib/supabase-rest";
 import type { Order } from "@/lib/types";
 
 type PageProps = {
@@ -18,8 +18,15 @@ type StripeLineItem = {
   };
 };
 
+type PaymentMethod = "stripe" | "cod";
+
 function money(value: number) {
   return `AED ${value.toLocaleString("en-US")}`;
+}
+
+function extractPaymentMethodFromInstructions(notes?: string | null): PaymentMethod {
+  if (!notes) return "stripe";
+  return notes.includes("payment_method=cod") ? "cod" : "stripe";
 }
 
 async function getStripeSession(sessionId: string) {
@@ -69,16 +76,11 @@ function buildOrderFromStripe(
   stripeSession: NonNullable<Awaited<ReturnType<typeof getStripeSession>>>,
   lineItems: StripeLineItem[],
 ): Order {
-  const depositFromMeta = Number(stripeSession.metadata?.deposit_amount ?? 0);
   const subtotalFromMeta = Number(stripeSession.metadata?.subtotal ?? 0);
-  const depositAmount =
-    Number.isFinite(depositFromMeta) && depositFromMeta > 0
-      ? depositFromMeta
-      : Math.round((stripeSession.amount_total ?? 0) / 100);
   const totalAmount =
     Number.isFinite(subtotalFromMeta) && subtotalFromMeta > 0
       ? subtotalFromMeta
-      : depositAmount * 2;
+      : Math.round((stripeSession.amount_total ?? 0) / 100);
 
   return {
     id: orderId,
@@ -88,7 +90,7 @@ function buildOrderFromStripe(
     status: stripeSession.payment_status === "paid" ? "confirmed" : "pending",
     delivery_date: stripeSession.metadata?.delivery_date ?? "TBD",
     total_amount: totalAmount,
-    deposit_amount: depositAmount,
+    deposit_amount: stripeSession.payment_status === "paid" ? totalAmount : 0,
     deposit_paid: stripeSession.payment_status === "paid",
     items:
       lineItems.length > 0
@@ -96,14 +98,14 @@ function buildOrderFromStripe(
             product_id: `stripe-${index}`,
             name: item.description || "Order item",
             qty: item.quantity || 1,
-            unit_price: ((item.price?.unit_amount || 0) / 100) || depositAmount,
+            unit_price: ((item.price?.unit_amount || 0) / 100) || totalAmount,
           }))
         : [
             {
-              product_id: "stripe-deposit",
-              name: "Deposit Payment",
+              product_id: "stripe-order",
+              name: "Order Payment",
               qty: 1,
-              unit_price: depositAmount,
+              unit_price: totalAmount,
             },
           ],
   };
@@ -117,7 +119,7 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
   let order = orderResult.data;
 
   if (sessionId) {
-    const paidUpdate = await markOrderDepositPaid(id);
+    const paidUpdate = await markOrderPaid(id);
     if (paidUpdate.data) {
       order = paidUpdate.data;
     }
@@ -145,30 +147,38 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
     );
   }
 
+  const paymentMethod = extractPaymentMethodFromInstructions(order.special_instructions);
+  const paidNow = order.deposit_paid ? order.total_amount : 0;
+  const paymentLabel = order.deposit_paid
+    ? "Paid"
+    : paymentMethod === "cod"
+    ? "COD pending"
+    : "Payment pending";
+
   const steps = [
     {
       icon: CheckCircle2,
-      label: "Deposit paid",
-      done: order.deposit_paid,
-      detail: order.deposit_paid ? money(order.deposit_amount) : "Awaiting confirmation",
+      label: "Order received",
+      done: true,
+      detail: `Payment: ${paymentLabel}`,
     },
     {
       icon: PackageCheck,
       label: "Preparing order",
       done: order.status === "preparing" || order.status === "out_for_delivery" || order.status === "delivered",
-      detail: "Pick and pack starts next",
+      detail: "Pick and pack in progress",
     },
     {
       icon: Truck,
-      label: "Delivery",
+      label: "Out for delivery",
       done: order.status === "out_for_delivery" || order.status === "delivered",
       detail: order.delivery_date,
     },
     {
       icon: Clock3,
-      label: "Balance due",
+      label: "Delivered",
       done: order.status === "delivered",
-      detail: money(order.total_amount - order.deposit_amount),
+      detail: order.status === "delivered" ? "Completed" : "Pending",
     },
   ];
 
@@ -182,7 +192,7 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
           <article>
-            <h2 className="text-xl font-semibold text-slate-900">What happens next</h2>
+            <h2 className="text-xl font-semibold text-slate-900">Delivery timeline</h2>
             <div className="mt-3 space-y-2">
               {steps.map((step) => (
                 <div key={step.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -208,7 +218,9 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
             </div>
             <div className="mt-4 space-y-1 border-t border-slate-200 pt-3 text-sm">
               <p className="flex justify-between"><span>Total</span><strong>{money(order.total_amount)}</strong></p>
-              <p className="flex justify-between"><span>Deposit</span><strong>{money(order.deposit_amount)}</strong></p>
+              <p className="flex justify-between"><span>Paid now</span><strong>{money(paidNow)}</strong></p>
+              <p className="flex justify-between"><span>Payment method</span><strong className="uppercase">{paymentMethod}</strong></p>
+              <p className="flex justify-between"><span>Payment status</span><strong>{paymentLabel}</strong></p>
               <p className="flex justify-between"><span>Delivery date</span><strong>{order.delivery_date}</strong></p>
             </div>
           </article>

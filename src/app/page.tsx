@@ -47,6 +47,21 @@ function href(screen: Screen) {
   return `/?screen=${screen}`;
 }
 
+function paymentMethodFromOrder(order?: Order) {
+  const notes = order?.special_instructions;
+  if (!notes) return "stripe";
+  return notes.includes("payment_method=cod") ? "cod" : "stripe";
+}
+
+function merchandisingCopy(product: Product) {
+  const idealForFromDescription = product.description.match(/Ideal for:\s*([^.]*)\.?/i)?.[1]?.trim();
+  const dishIdeasFromDescription = product.description.match(/Dish ideas:\s*([^.]*)\.?/i)?.[1]?.trim();
+  return {
+    idealFor: product.ideal_for ?? idealForFromDescription,
+    dishIdeas: product.dish_ideas?.join(", ") ?? dishIdeasFromDescription,
+  };
+}
+
 function AppShell({ children, source }: { children: React.ReactNode; source: "supabase" | "fallback" }) {
   return (
     <main className="mx-auto max-w-[1520px] p-3 pb-8 sm:p-6">
@@ -133,7 +148,7 @@ function MetricStrip({ order }: { order?: Order }) {
       <article className="kpi">
         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Open Basket</p>
         <p className="mt-1 text-2xl font-semibold text-slate-900">{money(order?.total_amount ?? 0)}</p>
-        <p className="text-xs text-slate-500">Deposit {money(order?.deposit_amount ?? 0)}</p>
+        <p className="text-xs text-slate-500">Paid now {money(order?.deposit_amount ?? 0)}</p>
       </article>
       <article className="kpi">
         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Next Delivery</p>
@@ -146,7 +161,7 @@ function MetricStrip({ order }: { order?: Order }) {
         <p className="text-xs text-slate-500">Confirmed purchase orders</p>
       </article>
       <article className="kpi">
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Deposits Collected</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Payments Collected</p>
         <p className="mt-1 text-2xl font-semibold text-slate-900">AED 18.4K</p>
         <p className="text-xs text-slate-500">Current cycle</p>
       </article>
@@ -164,8 +179,9 @@ function ProductRail({ title, products }: { title: string; products: Product[] }
         </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <article key={product.id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {products.map((product) => {
+          const copy = merchandisingCopy(product);
+          return <article key={product.id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <div className="h-36 overflow-hidden bg-slate-100">
               <img
                 src={product.image_url}
@@ -176,6 +192,16 @@ function ProductRail({ title, products }: { title: string; products: Product[] }
             <div className="p-3">
               <h4 className="line-clamp-2 text-sm font-semibold text-slate-900">{product.name}</h4>
               <p className="mt-1 text-xs text-slate-500">{product.unit}</p>
+              {copy.idealFor ? (
+                <p className="mt-2 line-clamp-2 text-xs text-slate-600">
+                  <span className="font-semibold">Ideal for:</span> {copy.idealFor}
+                </p>
+              ) : null}
+              {copy.dishIdeas ? (
+                <p className="mt-1 line-clamp-2 text-xs text-slate-600">
+                  <span className="font-semibold">Dish ideas:</span> {copy.dishIdeas}
+                </p>
+              ) : null}
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-base font-semibold text-slate-900">{money(product.price)}</p>
                 <AddToCartButton
@@ -185,7 +211,37 @@ function ProductRail({ title, products }: { title: string; products: Product[] }
                 />
               </div>
             </div>
-          </article>
+          </article>;
+        })}
+      </div>
+    </article>
+  );
+}
+
+function ComingSoonLanes() {
+  const lanes = [
+    {
+      name: "Japanese Specialty",
+      eta: "Coming soon",
+      detail: "Imported pantry, frozen specialties, and chef-ready packs.",
+    },
+    {
+      name: "General Essentials",
+      eta: "Coming soon",
+      detail: "Daily staples, produce, and high-rotation kitchen supplies.",
+    },
+  ];
+
+  return (
+    <article className="lux-panel p-5">
+      <h3 className="text-2xl font-semibold text-slate-900">Upcoming categories</h3>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {lanes.map((lane) => (
+          <div key={lane.name} className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{lane.eta}</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{lane.name}</p>
+            <p className="mt-1 text-sm text-slate-600">{lane.detail}</p>
+          </div>
         ))}
       </div>
     </article>
@@ -238,9 +294,9 @@ function OperationsSnapshot({ order }: { order?: Order }) {
           <p className="text-sm text-slate-600">Delivery: {order?.delivery_date ?? "--"}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Payment split</p>
-          <p className="mt-1 text-sm text-slate-700">Deposit now: <span className="font-semibold">{money(order?.deposit_amount ?? 0)}</span></p>
-          <p className="text-sm text-slate-700">Balance on delivery: <span className="font-semibold">{money((order?.total_amount ?? 0) - (order?.deposit_amount ?? 0))}</span></p>
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Payment status</p>
+          <p className="mt-1 text-sm text-slate-700">Method: <span className="font-semibold uppercase">{paymentMethodFromOrder(order)}</span></p>
+          <p className="text-sm text-slate-700">Paid now: <span className="font-semibold">{money(order?.deposit_amount ?? 0)}</span></p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Fulfillment queue</p>
@@ -267,7 +323,7 @@ function WhyTurnKey() {
     {
       icon: PackageCheck,
       title: "Fast Checkout Flow",
-      desc: "Move from cart to secure 50% deposit payment in minutes with Stripe checkout.",
+      desc: "Move from cart to full payment or COD in minutes with secure checkout.",
     },
   ];
 
@@ -287,7 +343,7 @@ function WhyTurnKey() {
 function WorkflowSection() {
   const steps = [
     "Browse and add products in under 2 minutes",
-    "Pay 50% deposit securely via checkout",
+    "Pay full amount via Stripe or place COD order",
     "Track preparation and delivery in real time",
   ];
 
@@ -351,13 +407,21 @@ function Footer() {
 }
 
 function HomeScreen({ products, order }: { products: Product[]; order?: Order }) {
-  const featured = products[0];
-  const japanese = products.filter((product) => product.category === "japanese");
   const ramadan = products.filter((product) => product.category === "ramadan");
+  const activeProducts = ramadan.length > 0 ? ramadan : products;
+  const featured = activeProducts[0];
 
   return (
     <section className="space-y-4">
       <MetricStrip order={order} />
+
+      <article className="lux-panel p-4 sm:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">Ramadan Collection: Live</span>
+          <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-600">Japanese Specialty: Coming soon</span>
+          <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-600">General Essentials: Coming soon</span>
+        </div>
+      </article>
 
       <article className="lux-panel overflow-hidden p-4 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
@@ -383,7 +447,7 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
                   <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Payment</p>
-                  <p className="text-sm font-semibold text-slate-900">50% deposit</p>
+                  <p className="text-sm font-semibold text-slate-900">Full pay or COD</p>
                 </div>
               </div>
             </div>
@@ -401,12 +465,12 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
       </article>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <ProductRail title="Recommended for your weekly run" products={products.slice(0, 3)} />
+        <ProductRail title="Recommended for your weekly run" products={activeProducts.slice(0, 3)} />
         <ActionPanel />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <ProductRail title="High-rotation essentials" products={products.slice(0, 3)} />
+        <ProductRail title="High-rotation essentials" products={activeProducts.slice(0, 3)} />
         <OperationsSnapshot order={order} />
       </div>
 
@@ -414,7 +478,7 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
       <WorkflowSection />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <ProductRail title="Japanese specialty" products={japanese.length > 0 ? japanese : products} />
+        <ProductRail title="Ramadan top movers" products={activeProducts.slice(0, 3)} />
         <article className="lux-panel p-5">
           <h3 className="text-2xl font-semibold text-slate-900">Order Pulse</h3>
           {order ? (
@@ -422,7 +486,7 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
               <p className="mt-1 text-sm text-slate-500">Latest order #{order.order_number}</p>
               <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 text-sm">
                 <p className="flex justify-between"><span className="text-slate-500">Total</span><strong>{money(order.total_amount)}</strong></p>
-                <p className="flex justify-between"><span className="text-slate-500">Deposit</span><strong>{money(order.deposit_amount)}</strong></p>
+                <p className="flex justify-between"><span className="text-slate-500">Paid now</span><strong>{money(order.deposit_amount)}</strong></p>
                 <p className="flex justify-between"><span className="text-slate-500">Delivery</span><strong>{order.delivery_date}</strong></p>
               </div>
             </>
@@ -435,40 +499,65 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
         </article>
       </div>
 
-      <ProductRail title="Ramadan must-haves" products={ramadan.length > 0 ? ramadan : products} />
+      <ProductRail title="Ramadan must-haves" products={activeProducts} />
+      <ComingSoonLanes />
       <CTASection />
     </section>
   );
 }
 
 function CatalogScreen({ products }: { products: Product[] }) {
+  const ramadanOnly = products.filter((product) => product.category === "ramadan");
+  const catalogProducts = ramadanOnly.length > 0 ? ramadanOnly : products;
+
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {products.map((product) => (
-        <article key={product.id} className="lux-panel overflow-hidden p-0">
-          <div className="h-56 bg-slate-100">
-            <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
-          </div>
-          <div className="space-y-3 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="text-xl font-semibold text-slate-900">{product.name}</h2>
-              <span className="text-lg font-semibold text-slate-900">{money(product.price)}</span>
+    <section className="space-y-4">
+      <article className="lux-panel p-5">
+        <p className="text-xs uppercase tracking-[0.18em] text-primary">Active catalog</p>
+        <h2 className="mt-1 text-3xl font-semibold text-slate-900">Ramadan Collection</h2>
+        <p className="mt-2 text-sm text-slate-600">Japanese Specialty and General Essentials are currently marked as coming soon.</p>
+      </article>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {catalogProducts.map((product) => {
+          const copy = merchandisingCopy(product);
+          return <article key={product.id} className="lux-panel overflow-hidden p-0">
+            <div className="h-56 bg-slate-100">
+              <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
             </div>
-            <p className="text-sm text-slate-500">{product.description}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {product.certifications.map((cert) => (
-                <span key={cert} className="rounded-full border border-slate-300 px-2.5 py-1 text-[11px] text-slate-600">
-                  {cert}
-                </span>
-              ))}
+            <div className="space-y-3 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-xl font-semibold text-slate-900">{product.name}</h2>
+                <span className="text-lg font-semibold text-slate-900">{money(product.price)}</span>
+              </div>
+              <p className="text-sm text-slate-500">{product.description}</p>
+              {copy.idealFor ? (
+                <p className="text-xs text-slate-600">
+                  <span className="font-semibold">Ideal for:</span> {copy.idealFor}
+                </p>
+              ) : null}
+              {copy.dishIdeas ? (
+                <p className="text-xs text-slate-600">
+                  <span className="font-semibold">Dish ideas:</span> {copy.dishIdeas}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-1.5">
+                {product.certifications.map((cert) => (
+                  <span key={cert} className="rounded-full border border-slate-300 px-2.5 py-1 text-[11px] text-slate-600">
+                    {cert}
+                  </span>
+                ))}
+              </div>
+              <AddToCartButton
+                product={product}
+                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
+              />
             </div>
-            <AddToCartButton
-              product={product}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
-            />
-          </div>
-        </article>
-      ))}
+          </article>;
+        })}
+      </div>
+
+      <ComingSoonLanes />
     </section>
   );
 }
@@ -488,7 +577,7 @@ function CartScreen({ order }: { order?: Order }) {
       </div>
       <div className="mt-4 space-y-1 text-sm">
         <p className="flex justify-between"><span>Subtotal</span><strong>{money(order.total_amount)}</strong></p>
-        <p className="flex justify-between"><span>Deposit</span><strong>{money(order.deposit_amount)}</strong></p>
+        <p className="flex justify-between"><span>Paid now</span><strong>{money(order.deposit_amount)}</strong></p>
       </div>
       <Link href="/checkout" className="mt-5 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white">
         Proceed to checkout
@@ -505,7 +594,7 @@ function CheckoutScreen({ order }: { order?: Order }) {
         <article key={step} className="lux-panel p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Step {index + 1}</p>
           <h3 className="mt-2 text-2xl font-semibold text-slate-900">{step}</h3>
-          <p className="mt-1 text-sm text-slate-600">{index === 1 ? `Pay ${money(order.deposit_amount)} deposit now.` : "Optimized for one-minute completion."}</p>
+          <p className="mt-1 text-sm text-slate-600">{index === 1 ? `Pay ${money(order.total_amount)} now or place COD.` : "Optimized for one-minute completion."}</p>
         </article>
       ))}
     </section>
@@ -514,12 +603,13 @@ function CheckoutScreen({ order }: { order?: Order }) {
 
 function TrackingScreen({ order }: { order?: Order }) {
   if (!order) return <section className="lux-panel p-5">No active order to track.</section>;
+  const isCod = paymentMethodFromOrder(order) === "cod";
   return (
     <section className="lux-panel p-5">
       <h2 className="text-3xl font-semibold text-slate-900">Order #{order.order_number}</h2>
       <div className="mt-4 space-y-2 text-sm text-slate-700">
         <p className="inline-flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-600" /> Confirmed</p>
-        <p className="inline-flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-600" /> Deposit received</p>
+        <p className="inline-flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-600" /> {isCod ? "COD pending" : "Payment received"}</p>
         <p className="inline-flex items-center gap-2"><Clock3 size={16} className="text-amber-600" /> Preparing order</p>
         <p className="inline-flex items-center gap-2"><Truck size={16} className="text-slate-500" /> Out for delivery</p>
       </div>
@@ -530,13 +620,16 @@ function TrackingScreen({ order }: { order?: Order }) {
 export default async function Home({ searchParams }: PageProps) {
   const params = await searchParams;
   const screen = params.screen ?? "home";
+  const demoUserId = process.env.DEMO_CUSTOMER_ID ?? "e6a118e9-47f2-44d2-92f4-8e832f2cb10a";
 
   const [productResult, orderResult] = await Promise.all([
     getProducts(),
-    getMyOrders("demo-customer-001"),
+    getMyOrders(demoUserId),
   ]);
 
   const products = productResult.data;
+  const activeProducts = products.filter((product) => product.category === "ramadan");
+  const productPool = activeProducts.length > 0 ? activeProducts : products;
   const latestOrder = orderResult.data[0];
 
   return (
@@ -544,7 +637,7 @@ export default async function Home({ searchParams }: PageProps) {
       <ScreenNav current={screen} />
       {screen === "home" ? <HomeScreen products={products} order={latestOrder} /> : null}
       {screen === "catalog" ? <CatalogScreen products={products} /> : null}
-      {screen === "product" ? <ProductExperience product={products[0]} related={products.slice(1)} /> : null}
+      {screen === "product" ? <ProductExperience product={productPool[0]} related={productPool.slice(1)} /> : null}
       {screen === "cart" ? <CartScreen order={latestOrder} /> : null}
       {screen === "checkout" ? <CheckoutScreen order={latestOrder} /> : null}
       {screen === "tracking" ? <TrackingScreen order={latestOrder} /> : null}

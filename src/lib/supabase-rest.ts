@@ -101,6 +101,8 @@ type CreateOrderInput = {
   total_amount: number;
   deposit_amount: number;
   delivery_date: string;
+  status?: Order["status"];
+  deposit_paid?: boolean;
   special_instructions?: string;
 };
 
@@ -110,8 +112,8 @@ export async function createOrder(
   const body = [
     {
       ...payload,
-      status: "pending",
-      deposit_paid: false,
+      status: payload.status ?? "pending",
+      deposit_paid: payload.deposit_paid ?? false,
     },
   ];
 
@@ -128,7 +130,8 @@ export async function createOrder(
     delivery_date: payload.delivery_date,
     total_amount: payload.total_amount,
     deposit_amount: payload.deposit_amount,
-    deposit_paid: false,
+    deposit_paid: payload.deposit_paid ?? false,
+    special_instructions: payload.special_instructions,
     items: payload.items,
   };
   mockOrders.unshift(fallbackOrder);
@@ -148,7 +151,7 @@ export async function getOrderById(
   return { source: "fallback", data: fallbackOrder };
 }
 
-export async function markOrderDepositPaid(
+export async function markOrderPaid(
   orderId: string,
 ): Promise<{ source: DataSource; data: Order | null }> {
   const data = await requestWrite<Order[]>(
@@ -162,6 +165,7 @@ export async function markOrderDepositPaid(
   const fallbackOrder = mockOrders.find((order) => order.id === orderId);
   if (fallbackOrder) {
     fallbackOrder.deposit_paid = true;
+    fallbackOrder.deposit_amount = fallbackOrder.total_amount;
     fallbackOrder.status = "confirmed";
     return { source: "fallback", data: fallbackOrder };
   }

@@ -37,6 +37,13 @@ function money(value: number) {
 }
 
 export default function ProductExperience({ product, related }: ProductExperienceProps) {
+  const idealFor =
+    product.ideal_for ??
+    product.description.match(/Ideal for:\s*([^.]*)\.?/i)?.[1]?.trim();
+  const dishIdeas =
+    product.dish_ideas?.join(", ") ??
+    product.description.match(/Dish ideas:\s*([^.]*)\.?/i)?.[1]?.trim();
+
   const images = useMemo(() => {
     const bank = fallbackImages[product.category] ?? fallbackImages.general;
     return [product.image_url, ...bank.filter((url) => url !== product.image_url)].slice(0, 4);
@@ -46,7 +53,6 @@ export default function ProductExperience({ product, related }: ProductExperienc
   const [qty, setQty] = useState(1);
 
   const total = qty * product.price;
-  const deposit = Math.round(total * 0.5);
 
   return (
     <section className="space-y-4 pb-24">
@@ -83,6 +89,12 @@ export default function ProductExperience({ product, related }: ProductExperienc
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Product Detail</p>
             <h2 className="mt-2 text-5xl font-semibold leading-[1.02] text-slate-900">{product.name}</h2>
             <p className="mt-4 text-sm leading-relaxed text-slate-600">{product.description}</p>
+            {idealFor ? (
+              <p className="mt-2 text-sm text-slate-700"><span className="font-semibold">Ideal for:</span> {idealFor}</p>
+            ) : null}
+            {dishIdeas ? (
+              <p className="mt-1 text-sm text-slate-700"><span className="font-semibold">Dish ideas:</span> {dishIdeas}</p>
+            ) : null}
 
             <div className="mt-6 border-y border-slate-200 py-5">
               <p className="text-4xl font-semibold text-slate-900">{money(product.price)}</p>
@@ -118,7 +130,7 @@ export default function ProductExperience({ product, related }: ProductExperienc
               label={`Add to cart ${money(total)}`}
             />
 
-            <p className="mt-3 text-sm text-slate-600">Deposit due today (50%): {money(deposit)}</p>
+            <p className="mt-3 text-sm text-slate-600">Checkout options: pay full now via Stripe or place COD order.</p>
           </div>
         </div>
       </article>
@@ -144,7 +156,7 @@ export default function ProductExperience({ product, related }: ProductExperienc
         <div className="mx-auto flex max-w-[1520px] items-center justify-between gap-3 rounded-2xl border border-slate-300/90 bg-white/95 px-4 py-3 shadow-[0_12px_26px_rgba(20,40,70,0.16)] backdrop-blur">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Ready to checkout</p>
-            <p className="text-sm text-slate-700">Deposit now: {money(deposit)} | Balance on delivery: {money(total - deposit)}</p>
+            <p className="text-sm text-slate-700">Total: {money(total)} | Full pay or COD available</p>
           </div>
           <AddToCartButton
             product={product}

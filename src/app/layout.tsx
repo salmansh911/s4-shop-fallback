@@ -3,9 +3,9 @@ import "./globals.css";
 import ToastViewport from "./components/ToastViewport";
 
 export const metadata: Metadata = {
-  title: "TurnKey | AI-powered ordering for modern distributors",
+  title: "S4 Commerce | Ramadan ordering platform",
   description:
-    "Mobile-first ordering platform for distributors with AI suggestions, deposits, and operations dashboard.",
+    "Mobile-first ordering platform for restaurant and wholesale Ramadan supply ordering.",
 };
 
 export default function RootLayout({

@@ -14,6 +14,8 @@ type DeliveryForm = {
   deliveryDate: string;
 };
 
+type PaymentMethod = "stripe" | "cod";
+
 function money(value: number) {
   return `AED ${value.toLocaleString("en-US")}`;
 }
@@ -29,6 +31,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
 
   const [form, setForm] = useState<DeliveryForm>({
     restaurantName: "",
@@ -40,7 +43,6 @@ export default function CheckoutPage() {
   });
 
   const subtotal = useMemo(() => cartSubtotal(items), [items]);
-  const deposit = Math.round(subtotal * 0.5);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -55,7 +57,7 @@ export default function CheckoutPage() {
     form.email.trim() &&
     form.deliveryDate;
 
-  async function handlePayDeposit() {
+  async function handlePlaceOrder() {
     try {
       setLoading(true);
       setError("");
@@ -66,8 +68,8 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           items,
           subtotal,
-          depositAmount: deposit,
           customerEmail: form.email,
+          paymentMethod,
           deliveryDetails: form,
         }),
       });
@@ -116,7 +118,7 @@ export default function CheckoutPage() {
           <div className={`h-2 rounded-full bg-primary transition-all ${step === 1 ? "w-1/3" : step === 2 ? "w-2/3" : "w-full"}`} />
         </div>
         {canceled ? (
-          <p className="mt-3 text-sm text-amber-700">Payment was canceled. You can retry the deposit payment.</p>
+          <p className="mt-3 text-sm text-amber-700">Payment was canceled. You can retry checkout.</p>
         ) : null}
 
         {step === 1 ? (
@@ -183,10 +185,32 @@ export default function CheckoutPage() {
           <div className="mt-5 space-y-4">
             <h2 className="text-xl font-semibold text-slate-900">Payment</h2>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">Subtotal: {money(subtotal)}</p>
-              <p className="text-sm font-semibold text-primary">Pay now (50% deposit): {money(deposit)}</p>
-              <p className="text-sm text-slate-600">Balance on delivery: {money(subtotal - deposit)}</p>
+              <p className="text-sm text-slate-600">Order total: {money(subtotal)}</p>
+              <p className="text-sm text-slate-600">Delivery date: {form.deliveryDate}</p>
             </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => setPaymentMethod("stripe")}
+                className={`w-full rounded-xl border px-4 py-3 text-left text-sm ${
+                  paymentMethod === "stripe" ? "border-primary bg-primary/5" : "border-slate-300"
+                }`}
+              >
+                <p className="font-semibold text-slate-900">Pay now (Stripe)</p>
+                <p className="text-slate-600">Pay full amount securely now.</p>
+              </button>
+
+              <button
+                onClick={() => setPaymentMethod("cod")}
+                className={`w-full rounded-xl border px-4 py-3 text-left text-sm ${
+                  paymentMethod === "cod" ? "border-primary bg-primary/5" : "border-slate-300"
+                }`}
+              >
+                <p className="font-semibold text-slate-900">Cash on Delivery</p>
+                <p className="text-slate-600">Place order now and pay when delivered.</p>
+              </button>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setStep(1)}
@@ -195,11 +219,15 @@ export default function CheckoutPage() {
                 Back
               </button>
               <button
-                onClick={handlePayDeposit}
+                onClick={handlePlaceOrder}
                 disabled={loading}
                 className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
               >
-                {loading ? "Redirecting..." : `Pay deposit ${money(deposit)}`}
+                {loading
+                  ? "Processing..."
+                  : paymentMethod === "stripe"
+                  ? `Pay now ${money(subtotal)}`
+                  : "Place COD order"}
               </button>
             </div>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -209,7 +237,11 @@ export default function CheckoutPage() {
         {step === 3 ? (
           <div className="mt-5 space-y-3">
             <h2 className="text-xl font-semibold text-slate-900">Confirmation</h2>
-            <p className="text-sm text-slate-600">Redirecting to secure Stripe checkout...</p>
+            <p className="text-sm text-slate-600">
+              {paymentMethod === "stripe"
+                ? "Redirecting to secure Stripe checkout..."
+                : "Placing your COD order..."}
+            </p>
             {orderId ? (
               <button
                 onClick={() => router.push(`/orders/${orderId}`)}
