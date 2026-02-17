@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-body: "Avenir Next", "Inter", "SF Pro Text", sans-serif;
+  --font-display: "Avenir Next", "Inter", "SF Pro Display", sans-serif;
+  --background: 0 0% 98%;
+  --foreground: 215 28% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 28% 17%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 28% 17%;
+  --primary: 354 86% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 140 80% 34%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 22% 92%;
+  --muted-foreground: 215 12% 42%;
+  --accent: 140 80% 34%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 86%;
+  --input: 0 0% 86%;
+  --ring: 354 86% 52%;
+  --radius: 1rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background:
+    radial-gradient(circle at 0% 0%, #ffe7ea 0%, rgba(255, 231, 234, 0) 30%),
+    radial-gradient(circle at 100% 18%, #e8f8ed 0%, rgba(232, 248, 237, 0) 30%),
+    linear-gradient(180deg, #fdfdfd 0%, #f4f6f7 100%);
+  color: hsl(var(--foreground));
+  font-family: var(--font-body), sans-serif;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: -0.015em;
+}
+
+.lux-panel {
+  @apply rounded-3xl border border-slate-200/90 bg-white shadow-[0_10px_30px_rgba(15,34,58,0.07)];
+  animation: panel-enter 380ms ease-out;
+}
+
+.tile {
+  @apply lux-panel;
+}
+
+.kpi {
+  @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+}
+
+.brand-chip {
+  @apply rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white;
+  background: linear-gradient(135deg, #ef1e2e 0%, #0e9f4d 100%);
+}
+
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
