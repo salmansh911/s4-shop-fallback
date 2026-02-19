@@ -5,25 +5,25 @@
 :root {
   --font-body: "Avenir Next", "Inter", "SF Pro Text", sans-serif;
   --font-display: "Avenir Next", "Inter", "SF Pro Display", sans-serif;
-  --background: 0 0% 98%;
+  --background: 200 22% 97%;
   --foreground: 215 28% 17%;
   --card: 0 0% 100%;
   --card-foreground: 215 28% 17%;
   --popover: 0 0% 100%;
   --popover-foreground: 215 28% 17%;
-  --primary: 354 86% 52%;
+  --primary: 193 72% 33%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 140 80% 34%;
+  --secondary: 193 70% 38%;
   --secondary-foreground: 0 0% 100%;
   --muted: 210 22% 92%;
   --muted-foreground: 215 12% 42%;
-  --accent: 140 80% 34%;
+  --accent: 15 92% 56%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   --border: 0 0% 86%;
   --input: 0 0% 86%;
-  --ring: 354 86% 52%;
+  --ring: 193 72% 33%;
   --radius: 1rem;
 }
 
@@ -33,9 +33,9 @@
 
 body {
   background:
-    radial-gradient(circle at 0% 0%, #ffe7ea 0%, rgba(255, 231, 234, 0) 30%),
-    radial-gradient(circle at 100% 18%, #e8f8ed 0%, rgba(232, 248, 237, 0) 30%),
-    linear-gradient(180deg, #fdfdfd 0%, #f4f6f7 100%);
+    radial-gradient(circle at 0% 0%, #dceff3 0%, rgba(220, 239, 243, 0) 34%),
+    radial-gradient(circle at 100% 20%, #f8eadd 0%, rgba(248, 234, 221, 0) 30%),
+    linear-gradient(180deg, #fbfdfe 0%, #f1f5f8 100%);
   color: hsl(var(--foreground));
   font-family: var(--font-body), sans-serif;
   min-height: 100vh;
@@ -50,7 +50,7 @@ h4 {
 }
 
 .lux-panel {
-  @apply rounded-3xl border border-slate-200/90 bg-white shadow-[0_10px_30px_rgba(15,34,58,0.07)];
+  @apply rounded-3xl border border-slate-200/90 bg-white shadow-[0_10px_30px_rgba(15,34,58,0.06)];
   animation: panel-enter 380ms ease-out;
 }
 
@@ -64,7 +64,11 @@ h4 {
 
 .brand-chip {
   @apply rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white;
-  background: linear-gradient(135deg, #ef1e2e 0%, #0e9f4d 100%);
+  background: linear-gradient(135deg, #0f6f78 0%, #15803d 100%);
+}
+
+.signal-chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700;
 }
 
 @keyframes panel-enter {

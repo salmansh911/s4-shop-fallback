@@ -188,6 +188,11 @@ export default function CheckoutPage() {
               <p className="text-sm text-slate-600">Order total: {money(subtotal)}</p>
               <p className="text-sm text-slate-600">Delivery date: {form.deliveryDate}</p>
             </div>
+            <div className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 sm:grid-cols-3">
+              <span>Secure Stripe</span>
+              <span>COD Supported</span>
+              <span>Invoice on confirmation</span>
+            </div>
 
             <div className="space-y-2">
               <button

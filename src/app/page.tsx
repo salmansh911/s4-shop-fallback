@@ -79,7 +79,7 @@ function AppShell({ children, source }: { children: React.ReactNode; source: "su
           </div>
         </div>
 
-        <header className="px-4 py-5 sm:px-8 sm:py-6">
+        <header className="px-4 py-4 sm:px-8 sm:py-4">
           <div className="grid items-center gap-4 lg:grid-cols-[1.2fr_auto_1fr]">
             <div className="flex items-center gap-3">
               <Image
@@ -91,7 +91,8 @@ function AppShell({ children, source }: { children: React.ReactNode; source: "su
                 priority
               />
               <div>
-                <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">S4 Commerce</h1>
+                <h1 className="text-3xl font-semibold text-slate-900 sm:text-[2.1rem]">S4 Commerce</h1>
+                <p className="text-sm text-slate-500">Ramadan ordering for restaurants and wholesalers</p>
               </div>
             </div>
 
@@ -104,7 +105,7 @@ function AppShell({ children, source }: { children: React.ReactNode; source: "su
             </div>
 
             <div className="flex items-center justify-end gap-2">
-              <button className="rounded-full border border-secondary px-4 py-2 text-sm font-medium text-secondary">
+              <button className="rounded-full border border-secondary/50 px-4 py-2 text-sm font-medium text-secondary">
                 Invite Team
               </button>
               <CartBadge />
@@ -124,14 +125,14 @@ function AppShell({ children, source }: { children: React.ReactNode; source: "su
 
 function ScreenNav({ current }: { current: Screen }) {
   return (
-    <div className="mb-5 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5">
+    <div className="mb-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={href(tab.key)}
           className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
             current === tab.key
-              ? "bg-primary text-white shadow-sm"
+              ? "bg-slate-900 text-white shadow-sm"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           }`}
         >
@@ -142,38 +143,39 @@ function ScreenNav({ current }: { current: Screen }) {
   );
 }
 
-function MetricStrip({ order }: { order?: Order }) {
+function BuyerSignalStrip({ order }: { order?: Order }) {
+  const paymentMethod = paymentMethodFromOrder(order).toUpperCase();
   return (
-    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <article className="kpi">
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Open Basket</p>
-        <p className="mt-1 text-2xl font-semibold text-slate-900">{money(order?.total_amount ?? 0)}</p>
-        <p className="text-xs text-slate-500">Paid now {money(order?.deposit_amount ?? 0)}</p>
-      </article>
-      <article className="kpi">
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Next Delivery</p>
-        <p className="mt-1 text-2xl font-semibold text-slate-900">{order?.delivery_date ?? "--"}</p>
-        <p className="text-xs text-slate-500">2:00 PM to 4:00 PM window</p>
-      </article>
-      <article className="kpi">
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Orders This Week</p>
-        <p className="mt-1 text-2xl font-semibold text-slate-900">12</p>
-        <p className="text-xs text-slate-500">Confirmed purchase orders</p>
-      </article>
-      <article className="kpi">
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Payments Collected</p>
-        <p className="mt-1 text-2xl font-semibold text-slate-900">AED 18.4K</p>
-        <p className="text-xs text-slate-500">Current cycle</p>
-      </article>
+    <section className="lux-panel p-4 sm:p-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="signal-chip">In Stock Today</span>
+        <span className="signal-chip">Next Delivery: {order?.delivery_date ?? "--"}</span>
+        <span className="signal-chip">Payment: Full Pay or COD</span>
+        <span className="signal-chip">Current Method: {paymentMethod}</span>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Open Basket</p>
+          <p className="text-xl font-semibold text-slate-900">{money(order?.total_amount ?? 0)}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Paid now</p>
+          <p className="text-xl font-semibold text-slate-900">{money(order?.deposit_amount ?? 0)}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Orders this week</p>
+          <p className="text-xl font-semibold text-slate-900">12</p>
+        </div>
+      </div>
     </section>
   );
 }
 
 function ProductRail({ title, products }: { title: string; products: Product[] }) {
   return (
-    <article className="lux-panel p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-2xl font-semibold text-slate-900">{title}</h3>
+      <article className="lux-panel p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-2xl font-semibold text-slate-900">{title}</h3>
         <button className="inline-flex items-center gap-2 text-sm font-medium text-slate-600">
           View all <ArrowRight size={14} />
         </button>
@@ -192,6 +194,12 @@ function ProductRail({ title, products }: { title: string; products: Product[] }
             <div className="p-3">
               <h4 className="line-clamp-2 text-sm font-semibold text-slate-900">{product.name}</h4>
               <p className="mt-1 text-xs text-slate-500">{product.unit}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">{product.stock_status}</span>
+                {product.certifications.slice(0, 1).map((cert) => (
+                  <span key={cert} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">{cert}</span>
+                ))}
+              </div>
               {copy.idealFor ? (
                 <p className="mt-2 line-clamp-2 text-xs text-slate-600">
                   <span className="font-semibold">Ideal for:</span> {copy.idealFor}
@@ -410,10 +418,11 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
   const ramadan = products.filter((product) => product.category === "ramadan");
   const activeProducts = ramadan.length > 0 ? ramadan : products;
   const featured = activeProducts[0];
+  const featuredCopy = featured ? merchandisingCopy(featured) : null;
 
   return (
     <section className="space-y-4">
-      <MetricStrip order={order} />
+      <BuyerSignalStrip order={order} />
 
       <article className="lux-panel p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
@@ -426,7 +435,7 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
       <article className="lux-panel overflow-hidden p-4 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
           <div className="overflow-hidden rounded-2xl bg-slate-100">
-            <img src={featured?.image_url} alt={featured?.name} className="h-full min-h-[250px] w-full object-cover" />
+            <img src={featured?.image_url} alt={featured?.name} className="h-full min-h-[290px] w-full object-cover" />
           </div>
           <div className="flex flex-col justify-between">
             <div>
@@ -435,6 +444,11 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
               <p className="mt-3 text-sm leading-relaxed text-slate-600">
                 Built for restaurant buyers: clear pricing, reliable stock visibility, and frictionless repeat ordering.
               </p>
+              <ul className="mt-3 space-y-1 text-sm text-slate-700">
+                <li>Ideal for: {featuredCopy?.idealFor ?? "High-volume kitchens and iftar prep teams"}</li>
+                <li>Dish ideas: {featuredCopy?.dishIdeas ?? "Iftar platter, family meal packs, catering trays"}</li>
+                <li>Fast fulfillment: 24-48 hr lead time on stocked SKUs</li>
+              </ul>
               <p className="mt-4 text-3xl font-semibold text-slate-900">{featured ? money(featured.price) : "AED --"}</p>
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
@@ -458,7 +472,7 @@ function HomeScreen({ products, order }: { products: Product[]; order?: Order })
                   className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white"
                 />
               ) : null}
-              <button className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700">Explore collection</button>
+              <button className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700">View Ramadan best sellers</button>
             </div>
           </div>
         </div>
@@ -516,6 +530,13 @@ function CatalogScreen({ products }: { products: Product[] }) {
         <p className="text-xs uppercase tracking-[0.18em] text-primary">Active catalog</p>
         <h2 className="mt-1 text-3xl font-semibold text-slate-900">Ramadan Collection</h2>
         <p className="mt-2 text-sm text-slate-600">Japanese Specialty and General Essentials are currently marked as coming soon.</p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="signal-chip">Frozen</span>
+          <span className="signal-chip">Beverages</span>
+          <span className="signal-chip">Staples</span>
+          <span className="signal-chip">Desserts</span>
+          <span className="ml-auto text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Sort: Best sellers</span>
+        </div>
       </article>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
