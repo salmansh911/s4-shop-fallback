@@ -15,7 +15,7 @@ function resolvePublicSiteUrl() {
 
 export default function AuthPage() {
   const router = useRouter();
-  const [nextPath, setNextPath] = useState("/checkout");
+  const [nextPath, setNextPath] = useState("/");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,7 +48,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setNextPath(params.get("next") || "/checkout");
+    setNextPath(params.get("next") || "/");
   }, []);
 
   useEffect(() => {
