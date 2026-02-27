@@ -43,7 +43,7 @@ export default function AuthButton() {
   if (!email) {
     return (
       <Link
-        href="/auth?next=/checkout"
+        href="/auth?next=/"
         className="btn-secondary"
       >
         Login
