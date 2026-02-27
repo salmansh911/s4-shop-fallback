@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
+const RESEND_COOLDOWN_SECONDS = 60;
+
 function resolvePublicSiteUrl() {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (configured) {
@@ -20,6 +22,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const supabaseEnabled = hasSupabaseBrowserConfig();
 
   async function hydrateSessionFromMagicLinkHash() {
@@ -50,6 +53,14 @@ export default function AuthPage() {
     const params = new URLSearchParams(window.location.search);
     setNextPath(params.get("next") || "/");
   }, []);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldownSeconds((value) => (value > 0 ? value - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
 
   useEffect(() => {
     if (!supabaseEnabled) return;
@@ -111,8 +122,15 @@ export default function AuthPage() {
 
       if (otpError) throw otpError;
       setNotice("Magic link sent. Open it from your inbox to continue.");
+      setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to send magic link");
+      const message = e instanceof Error ? e.message : "Unable to send magic link";
+      if (message.toLowerCase().includes("rate limit")) {
+        setError("Too many login emails sent. Please wait a minute and try again.");
+        setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -138,10 +156,14 @@ export default function AuthPage() {
 
           <button
             onClick={requestOtp}
-            disabled={loading || !email.trim()}
+            disabled={loading || !email.trim() || cooldownSeconds > 0}
             className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {loading ? "Sending link..." : "Send Magic Link"}
+            {loading
+              ? "Sending link..."
+              : cooldownSeconds > 0
+                ? `Resend in ${cooldownSeconds}s`
+                : "Send Magic Link"}
           </button>
         </div>
 
