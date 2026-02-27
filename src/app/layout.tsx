@@ -3,7 +3,7 @@ import "./globals.css";
 import ToastViewport from "./components/ToastViewport";
 
 export const metadata: Metadata = {
-  title: "S4 Commerce | Ramadan ordering platform",
+  title: "Commerce | Ramadan ordering platform",
   description:
     "Mobile-first ordering platform for restaurant and wholesale Ramadan supply ordering.",
 };

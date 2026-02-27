@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cartSubtotal, useCartStore } from "@/lib/cart-store";
+import { getSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
 type DeliveryForm = {
   restaurantName: string;
@@ -16,22 +16,25 @@ type DeliveryForm = {
 
 type PaymentMethod = "stripe" | "cod";
 
+const CHECKOUT_DRAFT_KEY = "s4-checkout-draft-v1";
+
 function money(value: number) {
   return `AED ${value.toLocaleString("en-US")}`;
 }
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const [canceled, setCanceled] = useState(false);
   const items = useCartStore((state) => state.items);
   const cartDate = useCartStore((state) => state.deliveryDate);
   const clearCart = useCartStore((state) => state.clearCart);
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [orderId, setOrderId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [loginChecked, setLoginChecked] = useState(false);
 
   const [form, setForm] = useState<DeliveryForm>({
     restaurantName: "",
@@ -43,11 +46,48 @@ export default function CheckoutPage() {
   });
 
   const subtotal = useMemo(() => cartSubtotal(items), [items]);
+  const supabaseEnabled = hasSupabaseBrowserConfig();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setCanceled(params.get("canceled") === "1");
   }, []);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem(CHECKOUT_DRAFT_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as Partial<DeliveryForm>;
+      setForm((prev) => ({ ...prev, ...parsed }));
+    } catch {
+      sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(form));
+  }, [form]);
+
+  useEffect(() => {
+    if (!supabaseEnabled) {
+      setLoginChecked(true);
+      return;
+    }
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setLoginChecked(true);
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => {
+        const user = data.session?.user ?? null;
+        setCustomerId(user?.id ?? null);
+        setAccessToken(data.session?.access_token ?? null);
+        if (user?.email) {
+          setForm((prev) => ({ ...prev, email: user.email ?? prev.email }));
+        }
+      setLoginChecked(true);
+    });
+  }, [supabaseEnabled]);
 
   const isFormValid =
     form.restaurantName.trim() &&
@@ -62,9 +102,16 @@ export default function CheckoutPage() {
       setLoading(true);
       setError("");
 
+      if (!customerId || !accessToken) {
+        throw new Error("Login is required before placing an order.");
+      }
+
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           items,
           subtotal,
@@ -81,9 +128,8 @@ export default function CheckoutPage() {
       }
 
       localStorage.setItem("turnkey-last-order-id", result.orderId);
-      setOrderId(result.orderId);
-      setStep(3);
       clearCart();
+      sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
       window.location.href = result.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Payment failed");
@@ -106,16 +152,37 @@ export default function CheckoutPage() {
     );
   }
 
+  if (loginChecked && !customerId) {
+    return (
+      <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
+        <section className="lux-panel p-6">
+          <h1 className="text-3xl font-semibold text-slate-900">Login required</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Please login to place orders, track delivery, and reorder from purchase history.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/auth?next=/checkout" className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white">
+              Login to continue
+            </Link>
+            <Link href="/cart" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700">
+              Back to cart
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
       <section className="lux-panel p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-semibold text-slate-900">Checkout</h1>
-          <p className="text-sm text-slate-500">Step {step} of 3</p>
+          <p className="text-sm text-slate-500">Step {step} of 2</p>
         </div>
 
         <div className="mt-3 h-2 rounded-full bg-slate-100">
-          <div className={`h-2 rounded-full bg-primary transition-all ${step === 1 ? "w-1/3" : step === 2 ? "w-2/3" : "w-full"}`} />
+          <div className={`h-2 rounded-full bg-primary transition-all ${step === 1 ? "w-1/3" : "w-2/3"}`} />
         </div>
         {canceled ? (
           <p className="mt-3 text-sm text-amber-700">Payment was canceled. You can retry checkout.</p>
@@ -236,25 +303,6 @@ export default function CheckoutPage() {
               </button>
             </div>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          </div>
-        ) : null}
-
-        {step === 3 ? (
-          <div className="mt-5 space-y-3">
-            <h2 className="text-xl font-semibold text-slate-900">Confirmation</h2>
-            <p className="text-sm text-slate-600">
-              {paymentMethod === "stripe"
-                ? "Redirecting to secure Stripe checkout..."
-                : "Placing your COD order..."}
-            </p>
-            {orderId ? (
-              <button
-                onClick={() => router.push(`/orders/${orderId}`)}
-                className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700"
-              >
-                View order
-              </button>
-            ) : null}
           </div>
         ) : null}
       </section>

@@ -10,7 +10,7 @@ export default function CartBadge() {
   return (
     <Link
       href="/cart"
-      className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700"
+      className="btn-ghost gap-2"
     >
       <ShoppingCart size={15} />
       Cart

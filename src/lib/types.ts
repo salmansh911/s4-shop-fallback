@@ -1,5 +1,7 @@
 export type Product = {
   id: string;
+  variant_id?: string;
+  backend_product_id?: string;
   name: string;
   category: "ramadan" | "japanese" | "premium_beef" | "general";
   price: number;

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { Product } from "./types";
+import type { OrderItem, Product } from "./types";
 
 export type CartItem = {
   product_id: string;
@@ -19,6 +19,7 @@ type CartState = {
   addItem: (product: Product, qty?: number) => void;
   removeItem: (productId: string) => void;
   updateQty: (productId: string, qty: number) => void;
+  replaceWithOrderItems: (items: OrderItem[]) => void;
   clearCart: () => void;
   setDeliveryDate: (date: string) => void;
 };
@@ -63,6 +64,17 @@ export const useCartStore = create<CartState>()(
             item.product_id === productId ? { ...item, qty: Math.max(1, qty) } : item,
           ),
         })),
+      replaceWithOrderItems: (items) =>
+        set({
+          items: items.map((item) => ({
+            product_id: item.product_id,
+            name: item.name,
+            unit: "Pack",
+            price: item.unit_price,
+            image_url: "/s4-logo.svg",
+            qty: item.qty,
+          })),
+        }),
       clearCart: () => set({ items: [] }),
       setDeliveryDate: (date) => set({ deliveryDate: date }),
     }),

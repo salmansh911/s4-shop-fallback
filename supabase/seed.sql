@@ -64,5 +64,46 @@ on conflict (id) do update set
   status = excluded.status,
   special_instructions = excluded.special_instructions;
 
+-- Custom launch product images (hosted by this app under /public/product-images).
+update public.products
+set image_url = case name
+  when 'Frozen Chicken Samosa' then '/product-images/frozen-chicken-samosa.png'
+  when 'Frozen Vegetable Samosa' then '/product-images/frozen-vegetable-samosa.png'
+  when 'Frozen Beef Samosa' then 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=1200&q=80'
+  when 'Frozen Beef Kibbeh' then '/product-images/frozen-beef-kibbeh.png'
+  when 'Frozen Chicken Kibbeh' then 'https://images.unsplash.com/photo-1604909052743-94e838986d24?auto=format&fit=crop&w=1200&q=80'
+  when 'Frozen Spring Roll (Veg)' then 'https://images.unsplash.com/photo-1608039829572-78524f79c4c7?auto=format&fit=crop&w=1200&q=80'
+  when 'Frozen Spring Roll (Chicken)' then '/product-images/frozen-spring-roll-chicken.png'
+  when 'Samosa Sheets' then '/product-images/samosa-sheets.png'
+  when 'Puff Pastry Sheets' then '/product-images/puff-pastry-sheets.png'
+  when 'Kunafa Dough (Kataifi)' then '/product-images/kunafa-dough-kataifi.png'
+  when 'Mozzarella Cheese Shredded' then '/product-images/mozzarella-cheese-shredded.png'
+  when 'Fresh Cream' then '/product-images/fresh-cream.png'
+  when 'Chicken Breast Boneless' then '/product-images/chicken-breast-boneless.png'
+  when 'Minced Chicken' then 'https://images.unsplash.com/photo-1528712306091-ed0763094c98?auto=format&fit=crop&w=1200&q=80'
+  when 'Minced Beef' then '/product-images/minced-beef.png'
+  when 'Vimto Concentrate' then '/product-images/vimto-concentrate.png'
+  when 'Rooh Afza Concentrate' then '/product-images/rooh-afza-concentrate.png'
+  when 'Mango Squash' then 'https://images.unsplash.com/photo-1577805947697-89e18249d767?auto=format&fit=crop&w=1200&q=80'
+  when 'Mixed Berry Squash' then '/product-images/mixed-berry-squash.png'
+  when 'Maida Flour' then '/product-images/maida-flour.png'
+  when 'Instant Dry Yeast' then '/product-images/instant-dry-yeast.png'
+  when 'Baking Powder' then '/product-images/baking-powder.png'
+  when 'Pure Ghee' then '/product-images/pure-ghee.png'
+  when 'Basmati Rice Premium' then '/product-images/basmati-rice-premium.png'
+  when 'Saffron Strings' then '/product-images/saffron-strings.png'
+  when 'Fresh Eggs' then '/product-images/fresh-eggs.png'
+  when 'Frozen Mixed Kebabs' then '/product-images/frozen-mixed-kebabs.png'
+  when 'Frozen Burger Patties' then 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&q=80'
+  when 'Frozen Pizza Base' then 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80'
+  when 'Premium Dates (Medjool)' then '/product-images/premium-dates-medjool.png'
+  when 'Mixed Nuts Premium' then 'https://images.unsplash.com/photo-1599599810694-b5b37304c041?auto=format&fit=crop&w=1200&q=80'
+  when 'Cooking Oil (Canola/Sunflower/Corn)' then '/product-images/cooking-oil-blend.png'
+  when 'Sunflower Oil' then '/product-images/cooking-oil-blend.png'
+  when 'Extra Virgin Olive Oil' then '/product-images/extra-virgin-olive-oil.png'
+  else image_url
+end
+where category = 'ramadan';
+
 -- Optional cleanup: disable stale AI demo cards for launch.
 delete from public.ai_suggestions;

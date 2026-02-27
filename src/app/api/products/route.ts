@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProducts } from "@/lib/supabase-rest";
+import { getProducts } from "@/lib/commerce";
 
 export async function GET() {
   const result = await getProducts();

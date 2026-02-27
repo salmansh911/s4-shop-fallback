@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMyOrders } from "@/lib/supabase-rest";
+import { getMyOrders } from "@/lib/commerce";
+import { getAuthenticatedUserFromRequest } from "@/lib/supabase-server";
 
 export async function GET(request: NextRequest) {
-  const userId =
-    request.nextUrl.searchParams.get("userId") ??
-    process.env.DEMO_CUSTOMER_ID ??
-    "e6a118e9-47f2-44d2-92f4-8e832f2cb10a";
-  const result = await getMyOrders(userId);
+  const user = await getAuthenticatedUserFromRequest(request);
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+  const result = await getMyOrders({
+    userId: user.id,
+    email: user.email,
+  });
   return NextResponse.json(result);
 }

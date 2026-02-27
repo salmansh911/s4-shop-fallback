@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOrder } from "@/lib/supabase-rest";
+import {
+  createCheckout,
+  getActiveCommerceProviderName,
+} from "@/lib/commerce";
+import { buildOrderNumber } from "@/lib/commerce/types";
+import {
+  createCheckoutAttempt,
+  markCheckoutAttemptFailed,
+} from "@/lib/checkout-attempts";
+import { resolveMedusaCustomerId } from "@/lib/identity/customer-map";
+import { getAuthenticatedUserFromRequest } from "@/lib/supabase-server";
 
 type CheckoutBody = {
   items: Array<{
@@ -7,6 +17,7 @@ type CheckoutBody = {
     name: string;
     qty: number;
     price: number;
+    variant_id?: string;
   }>;
   subtotal: number;
   customerEmail: string;
@@ -21,66 +32,183 @@ type CheckoutBody = {
   };
 };
 
-function buildOrderNumber() {
-  const today = new Date();
-  const y = today.getUTCFullYear();
-  const m = `${today.getUTCMonth() + 1}`.padStart(2, "0");
-  const d = `${today.getUTCDate()}`.padStart(2, "0");
-  const random = `${Math.floor(Math.random() * 9000) + 1000}`;
-  return `RAM-${y}${m}${d}-${random}`;
+async function createStripeSession(input: {
+  stripeSecret: string;
+  origin: string;
+  subtotal: number;
+  customerEmail: string;
+  successOrderId: string;
+  metadata: Record<string, string>;
+}) {
+  const successUrl = `${input.origin}/orders/${input.successOrderId}?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${input.origin}/checkout?canceled=1`;
+
+  const params = new URLSearchParams();
+  params.append("mode", "payment");
+  params.append("client_reference_id", input.successOrderId);
+  params.append("success_url", successUrl);
+  params.append("cancel_url", cancelUrl);
+  params.append("customer_email", input.customerEmail);
+  params.append("line_items[0][quantity]", "1");
+  params.append("line_items[0][price_data][currency]", "aed");
+  params.append(
+    "line_items[0][price_data][unit_amount]",
+    `${Math.round(input.subtotal * 100)}`,
+  );
+  params.append("line_items[0][price_data][product_data][name]", "S4 Order");
+
+  for (const [key, value] of Object.entries(input.metadata)) {
+    params.append(`metadata[${key}]`, value);
+  }
+
+  const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${input.stripeSecret}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: params,
+  });
+
+  const stripeJson = (await stripeRes.json()) as {
+    id?: string;
+    url?: string;
+    error?: { message?: string };
+  };
+
+  if (!stripeRes.ok || !stripeJson.url || !stripeJson.id) {
+    return {
+      ok: false as const,
+      error: stripeJson.error?.message || "Stripe session creation failed",
+    };
+  }
+
+  return {
+    ok: true as const,
+    data: {
+      sessionId: stripeJson.id,
+      url: stripeJson.url,
+    },
+  };
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthenticatedUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const body = (await request.json()) as CheckoutBody;
     if (!body.items?.length || !body.customerEmail || !body.paymentMethod) {
       return NextResponse.json({ error: "Invalid checkout payload" }, { status: 400 });
     }
 
-    const computedSubtotal = body.items.reduce((sum, item) => sum + item.qty * item.price, 0);
+    const computedSubtotal = body.items.reduce(
+      (sum, item) => sum + item.qty * item.price,
+      0,
+    );
     if (Math.abs(computedSubtotal - Math.round(body.subtotal || 0)) > 0) {
       return NextResponse.json({ error: "Invalid order total" }, { status: 400 });
     }
 
-    const orderId = crypto.randomUUID();
+    const origin = request.nextUrl.origin;
+    const providerName = getActiveCommerceProviderName();
     const orderNumber = buildOrderNumber();
-    const demoUserId =
-      process.env.DEMO_CUSTOMER_ID || "e6a118e9-47f2-44d2-92f4-8e832f2cb10a";
 
-    const orderItems = body.items.map((item) => ({
-      product_id: item.product_id,
-      name: item.name,
-      qty: item.qty,
-      unit_price: item.price,
-    }));
+    if (providerName === "medusa" && body.paymentMethod === "stripe") {
+      const stripeSecret = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecret) {
+        return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
+      }
 
-    const paidNow = body.paymentMethod === "stripe" ? computedSubtotal : 0;
-    const orderStatus = body.paymentMethod === "stripe" ? "pending" : "pending";
+      const medusaCustomerId = await resolveMedusaCustomerId({
+        userId: user.id,
+        email: user.email,
+      });
+      if (!medusaCustomerId) {
+        return NextResponse.json(
+          { error: "Unable to resolve Medusa customer profile" },
+          { status: 500 },
+        );
+      }
 
-    const orderResult = await createOrder({
-      id: orderId,
-      order_number: orderNumber,
-      user_id: demoUserId,
-      items: orderItems,
-      total_amount: computedSubtotal,
-      deposit_amount: paidNow,
-      delivery_date: body.deliveryDetails.deliveryDate,
-      status: orderStatus,
-      deposit_paid: false,
-      special_instructions: `payment_method=${body.paymentMethod}; restaurant=${body.deliveryDetails.restaurantName}; address=${body.deliveryDetails.address}; contact=${body.deliveryDetails.contactName} ${body.deliveryDetails.contactPhone}`,
-    });
+      const attempt = await createCheckoutAttempt({
+        userId: user.id,
+        medusaCustomerId,
+        orderNumber,
+        paymentMethod: "stripe",
+        items: body.items.map((item) => ({
+          ...item,
+          variant_id: item.variant_id ?? item.product_id,
+        })),
+        subtotal: computedSubtotal,
+        customerEmail: body.customerEmail,
+        deliveryDetails: body.deliveryDetails,
+      });
 
-    if (!orderResult.data) {
-      return NextResponse.json({ error: "Unable to create order" }, { status: 500 });
+      if (!attempt) {
+        return NextResponse.json(
+          { error: "Unable to create checkout attempt" },
+          { status: 500 },
+        );
+      }
+
+      const stripeSession = await createStripeSession({
+        stripeSecret,
+        origin,
+        subtotal: computedSubtotal,
+        customerEmail: body.customerEmail,
+        successOrderId: attempt.id,
+        metadata: {
+          attempt_id: attempt.id,
+          order_number: orderNumber,
+          payment_method: "stripe",
+          provider: "medusa",
+          subtotal: `${computedSubtotal}`,
+          delivery_date: body.deliveryDetails.deliveryDate,
+        },
+      });
+
+      if (!stripeSession.ok) {
+        await markCheckoutAttemptFailed(attempt.id);
+        return NextResponse.json({ error: stripeSession.error }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        url: stripeSession.data.url,
+        orderId: attempt.id,
+        orderNumber,
+      });
     }
 
-    const origin = request.nextUrl.origin;
+    const checkoutResult = await createCheckout({
+      auth: {
+        userId: user.id,
+        email: user.email,
+      },
+      items: body.items,
+      subtotal: computedSubtotal,
+      paymentMethod: body.paymentMethod,
+      deliveryDetails: body.deliveryDetails,
+      origin,
+      orderNumber,
+    });
+
+    if (!checkoutResult.data) {
+      return NextResponse.json(
+        { error: checkoutResult.error || "Unable to create checkout order" },
+        { status: 500 },
+      );
+    }
 
     if (body.paymentMethod === "cod") {
       return NextResponse.json({
-        url: `${origin}/orders/${orderId}`,
-        orderId,
-        orderNumber,
+        url:
+          checkoutResult.data.url ??
+          `${origin}/orders/${checkoutResult.data.orderId}`,
+        orderId: checkoutResult.data.orderId,
+        orderNumber: checkoutResult.data.orderNumber,
       });
     }
 
@@ -89,47 +217,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
     }
 
-    const successUrl = `${origin}/orders/${orderId}?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${origin}/checkout?canceled=1`;
-
-    const params = new URLSearchParams();
-    params.append("mode", "payment");
-    params.append("client_reference_id", orderId);
-    params.append("success_url", successUrl);
-    params.append("cancel_url", cancelUrl);
-    params.append("customer_email", body.customerEmail);
-    params.append("line_items[0][quantity]", "1");
-    params.append("line_items[0][price_data][currency]", "aed");
-    params.append("line_items[0][price_data][unit_amount]", `${computedSubtotal * 100}`);
-    params.append(
-      "line_items[0][price_data][product_data][name]",
-      `S4 Order (${orderNumber})`,
-    );
-    params.append("metadata[order_id]", orderId);
-    params.append("metadata[order_number]", orderNumber);
-    params.append("metadata[delivery_date]", body.deliveryDetails.deliveryDate);
-    params.append("metadata[subtotal]", `${computedSubtotal}`);
-    params.append("metadata[payment_method]", "stripe");
-
-    const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${stripeSecret}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+    const stripeSession = await createStripeSession({
+      stripeSecret,
+      origin,
+      subtotal: computedSubtotal,
+      customerEmail: body.customerEmail,
+      successOrderId: checkoutResult.data.orderId,
+      metadata: {
+        order_id: checkoutResult.data.orderId,
+        order_number: checkoutResult.data.orderNumber,
+        payment_method: "stripe",
+        provider: providerName,
+        subtotal: `${computedSubtotal}`,
+        delivery_date: body.deliveryDetails.deliveryDate,
       },
-      body: params,
     });
 
-    const stripeJson = (await stripeRes.json()) as { url?: string; error?: { message?: string } };
-
-    if (!stripeRes.ok || !stripeJson.url) {
-      return NextResponse.json(
-        { error: stripeJson.error?.message || "Stripe session creation failed" },
-        { status: 500 },
-      );
+    if (!stripeSession.ok) {
+      return NextResponse.json({ error: stripeSession.error }, { status: 500 });
     }
 
-    return NextResponse.json({ url: stripeJson.url, orderId, orderNumber });
+    return NextResponse.json({
+      url: stripeSession.data.url,
+      orderId: checkoutResult.data.orderId,
+      orderNumber: checkoutResult.data.orderNumber,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unexpected error" },

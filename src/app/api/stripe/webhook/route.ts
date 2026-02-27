@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { markOrderPaid } from "@/lib/supabase-rest";
+import { getActiveCommerceProviderName, markOrderPaid } from "@/lib/commerce";
+import { finalizeMedusaCheckoutAttemptById } from "@/lib/commerce/providers/medusa";
 
 type StripeWebhookEvent = {
   id: string;
@@ -72,10 +73,21 @@ export async function POST(request: NextRequest) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const paid = session.payment_status === "paid";
+      const providerName = session.metadata?.provider || getActiveCommerceProviderName();
+      const attemptId = session.metadata?.attempt_id;
       const orderId = session.metadata?.order_id ?? session.client_reference_id;
 
-      if (paid && orderId) {
-        await markOrderPaid(orderId);
+      if (paid && providerName === "medusa" && attemptId) {
+        await finalizeMedusaCheckoutAttemptById({
+          attemptId,
+          sessionId: session.id,
+        });
+      } else if (paid && orderId) {
+        await markOrderPaid(
+          orderId,
+          { userId: "system", email: null },
+          { provider: "stripe", sessionId: session.id },
+        );
       }
     }
 

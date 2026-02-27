@@ -1,12 +1,21 @@
-import { mockInsights, mockOrders, mockProducts } from "./mock-seed";
+import { mockInsights } from "./mock-seed";
+import { resolveProductImageUrl } from "./product-images";
 import type { InsightCard, Order, Product } from "./types";
 
 type DataSource = "supabase" | "fallback";
+type DataError = "SUPABASE_UNAVAILABLE";
+type DataResult<T> = {
+  source: DataSource;
+  data: T;
+  error?: DataError;
+};
 
 function env() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   return {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    key: serviceRoleKey || anonKey,
   };
 }
 
@@ -60,37 +69,80 @@ async function requestWrite<T>(
   return (await response.json()) as T;
 }
 
-export async function getProducts(): Promise<{ source: DataSource; data: Product[] }> {
+export async function getProducts(): Promise<DataResult<Product[]>> {
   const data = await request<Product[]>("products?select=*");
-  if (data && data.length > 0) {
-    return { source: "supabase", data };
+  if (data) {
+    return {
+      source: "supabase",
+      data: data.map((product) => ({
+        ...product,
+        image_url: resolveProductImageUrl(product.name, product.image_url),
+      })),
+    };
   }
-  return { source: "fallback", data: mockProducts };
+  return { source: "supabase", data: [], error: "SUPABASE_UNAVAILABLE" };
 }
 
 export async function getMyOrders(
   userId: string,
-): Promise<{ source: DataSource; data: Order[] }> {
+): Promise<DataResult<Order[]>> {
   const data = await request<Order[]>(
     `orders?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`,
   );
-  if (data && data.length > 0) {
+  if (data) {
     return { source: "supabase", data };
   }
   return {
-    source: "fallback",
-    data: mockOrders.filter((order) => order.user_id === userId),
+    source: "supabase",
+    data: [],
+    error: "SUPABASE_UNAVAILABLE",
   };
 }
 
 export async function getInsights(
   _userId: string,
-): Promise<{ source: DataSource; data: InsightCard[] }> {
+): Promise<DataResult<InsightCard[]>> {
   const data = await request<InsightCard[]>("ai_suggestions?select=*");
-  if (data && data.length > 0) {
+  if (data) {
     return { source: "supabase", data };
   }
   return { source: "fallback", data: mockInsights };
+}
+
+type UpsertUserInput = {
+  id: string;
+  restaurant_name: string;
+  email: string;
+  phone?: string;
+  delivery_address?: Record<string, string>;
+  medusa_customer_id?: string;
+};
+
+export async function upsertCustomerUser(
+  payload: UpsertUserInput,
+): Promise<DataResult<{ id: string } | null>> {
+  const body = [
+    {
+      id: payload.id,
+      role: "customer",
+      restaurant_name: payload.restaurant_name || "Restaurant Account",
+      email: payload.email,
+      phone: payload.phone ?? null,
+      delivery_address: payload.delivery_address ?? null,
+      medusa_customer_id: payload.medusa_customer_id ?? null,
+    },
+  ];
+
+  const data = await requestWrite<Array<{ id: string }>>(
+    "users?on_conflict=id",
+    "POST",
+    body,
+  );
+  if (data && data.length > 0) {
+    return { source: "supabase", data: data[0] };
+  }
+
+  return { source: "supabase", data: null, error: "SUPABASE_UNAVAILABLE" };
 }
 
 type CreateOrderInput = {
@@ -108,7 +160,7 @@ type CreateOrderInput = {
 
 export async function createOrder(
   payload: CreateOrderInput,
-): Promise<{ source: DataSource; data: Order | null }> {
+): Promise<DataResult<Order | null>> {
   const body = [
     {
       ...payload,
@@ -122,52 +174,31 @@ export async function createOrder(
     return { source: "supabase", data: data[0] };
   }
 
-  const fallbackOrder: Order = {
-    id: payload.id,
-    order_number: payload.order_number,
-    user_id: payload.user_id,
-    status: "pending",
-    delivery_date: payload.delivery_date,
-    total_amount: payload.total_amount,
-    deposit_amount: payload.deposit_amount,
-    deposit_paid: payload.deposit_paid ?? false,
-    special_instructions: payload.special_instructions,
-    items: payload.items,
-  };
-  mockOrders.unshift(fallbackOrder);
-  return { source: "fallback", data: fallbackOrder };
+  return { source: "supabase", data: null, error: "SUPABASE_UNAVAILABLE" };
 }
 
 export async function getOrderById(
   orderId: string,
-): Promise<{ source: DataSource; data: Order | null }> {
+): Promise<DataResult<Order | null>> {
   const data = await request<Order[]>(
     `orders?select=*&id=eq.${encodeURIComponent(orderId)}&limit=1`,
   );
-  if (data && data.length > 0) {
-    return { source: "supabase", data: data[0] };
+  if (data) {
+    return { source: "supabase", data: data[0] ?? null };
   }
-  const fallbackOrder = mockOrders.find((order) => order.id === orderId) ?? null;
-  return { source: "fallback", data: fallbackOrder };
+  return { source: "supabase", data: null, error: "SUPABASE_UNAVAILABLE" };
 }
 
 export async function markOrderPaid(
   orderId: string,
-): Promise<{ source: DataSource; data: Order | null }> {
+): Promise<DataResult<Order | null>> {
   const data = await requestWrite<Order[]>(
     `orders?id=eq.${encodeURIComponent(orderId)}`,
     "PATCH",
     { deposit_paid: true, status: "confirmed" },
   );
-  if (data && data.length > 0) {
-    return { source: "supabase", data: data[0] };
+  if (data) {
+    return { source: "supabase", data: data[0] ?? null };
   }
-  const fallbackOrder = mockOrders.find((order) => order.id === orderId);
-  if (fallbackOrder) {
-    fallbackOrder.deposit_paid = true;
-    fallbackOrder.deposit_amount = fallbackOrder.total_amount;
-    fallbackOrder.status = "confirmed";
-    return { source: "fallback", data: fallbackOrder };
-  }
-  return { source: "fallback", data: null };
+  return { source: "supabase", data: null, error: "SUPABASE_UNAVAILABLE" };
 }
