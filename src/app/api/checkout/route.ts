@@ -32,6 +32,45 @@ type CheckoutBody = {
   };
 };
 
+function normalizeOrigin(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function resolvePublicOrigin(request: NextRequest) {
+  const configured =
+    normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL) ||
+    normalizeOrigin(process.env.SITE_URL) ||
+    normalizeOrigin(process.env.APP_BASE_URL);
+
+  if (configured) return configured;
+
+  const forwardedHost = request.headers
+    .get("x-forwarded-host")
+    ?.split(",")[0]
+    ?.trim();
+  const forwardedProto = request.headers
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim();
+
+  if (forwardedHost) {
+    return `${forwardedProto || "https"}://${forwardedHost}`;
+  }
+
+  const host = request.headers.get("host");
+  const protocol = request.nextUrl.protocol.replace(":", "") || "https";
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  return request.nextUrl.origin;
+}
+
 async function createStripeSession(input: {
   stripeSecret: string;
   origin: string;
@@ -112,7 +151,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid order total" }, { status: 400 });
     }
 
-    const origin = request.nextUrl.origin;
+    const origin = resolvePublicOrigin(request);
     const providerName = getActiveCommerceProviderName();
     const orderNumber = buildOrderNumber();
 

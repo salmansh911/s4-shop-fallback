@@ -53,6 +53,7 @@ cp .env.example .env.local
 Set production values in `.env.local`:
 
 - `COMMERCE_PROVIDER=supabase`
+- `NEXT_PUBLIC_SITE_URL=https://shop.s4trading.com`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`

@@ -5,6 +5,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
 
+function resolvePublicSiteUrl() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
+  return window.location.origin;
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const [nextPath, setNextPath] = useState("/checkout");
@@ -47,7 +55,12 @@ export default function AuthPage() {
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { shouldCreateUser: true },
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${resolvePublicSiteUrl()}/auth?next=${encodeURIComponent(
+            nextPath,
+          )}`,
+        },
       });
 
       if (otpError) throw otpError;
