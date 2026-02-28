@@ -58,12 +58,24 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <header className="lux-panel overflow-hidden">
         <div className="border-b border-slate-200/80 bg-slate-50/80 px-4 py-2 text-[12px] text-slate-600 sm:px-8">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-4">
-              <span>Live stock updates</span>
-              <span>Secure checkout</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href={href("catalog")} className="font-medium text-slate-700 underline-offset-2 hover:underline">
+                Live stock updates
+              </Link>
+              <Link href="/checkout" className="font-medium text-slate-700 underline-offset-2 hover:underline">
+                Secure checkout
+              </Link>
             </div>
             <span className="w-full break-words text-left sm:w-auto sm:text-right">
-              Contact us at sales@s4trading.com or +971589615504 for any enquiries.
+              Contact us at{" "}
+              <a href="mailto:sales@s4trading.com" className="font-medium text-slate-700 underline underline-offset-2">
+                sales@s4trading.com
+              </a>{" "}
+              or{" "}
+              <a href="tel:+971589615504" className="font-medium text-slate-700 underline underline-offset-2">
+                +971589615504
+              </a>{" "}
+              for any enquiries.
             </span>
           </div>
         </div>
@@ -109,12 +121,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 function ScreenNav({ current }: { current: Screen }) {
   return (
-    <div className="mb-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5">
+    <div className="mb-4 grid grid-cols-5 gap-1 rounded-2xl border border-slate-200 bg-white p-1.5">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={href(tab.key)}
-          className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 ${
+          className={`rounded-xl px-1.5 py-2 text-center text-sm font-medium transition sm:px-3 ${
             current === tab.key
               ? "bg-slate-900 text-white shadow-sm"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -206,17 +218,22 @@ function Footer() {
   return (
     <footer className="mt-6 grid gap-3 md:grid-cols-3">
       <article className="lux-panel p-5 md:col-span-2">
-        <h4 className="text-xl font-semibold text-slate-900 sm:text-2xl">Commerce</h4>
-        <p className="mt-2 text-sm text-slate-600">A focused ordering platform for Ramadan restaurant supply.</p>
+        <Link href={href("home")} className="text-xl font-semibold text-slate-900 underline-offset-2 hover:underline sm:text-2xl">
+          Commerce
+        </Link>
+        <p className="mt-2 text-sm text-slate-600">
+          <Link href={href("catalog")} className="underline-offset-2 hover:underline">
+            Premium ordering for restaurant and wholesalers.
+          </Link>
+        </p>
       </article>
       <article className="lux-panel p-5">
-        <h5 className="text-sm font-semibold text-slate-900">Core flow</h5>
-        <ul className="mt-2 space-y-1 text-sm text-slate-600">
-          <li>Browse Catalog</li>
-          <li>Add to Cart</li>
-          <li>Checkout</li>
-          <li>Track Order</li>
-        </ul>
+        <nav className="space-y-1 text-sm text-slate-600">
+          <Link href={href("catalog")} className="block underline-offset-2 hover:underline">Browse Catalog</Link>
+          <Link href="/cart" className="block underline-offset-2 hover:underline">Add to Cart</Link>
+          <Link href="/checkout" className="block underline-offset-2 hover:underline">Checkout</Link>
+          <Link href="/orders" className="block underline-offset-2 hover:underline">Track Order</Link>
+        </nav>
       </article>
     </footer>
   );
