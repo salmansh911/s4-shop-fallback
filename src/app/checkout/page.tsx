@@ -142,7 +142,7 @@ export default function CheckoutPage() {
     return (
       <main className="mx-auto max-w-[900px] p-3 pb-8 sm:p-6">
         <section className="lux-panel p-6 text-center">
-          <h1 className="text-3xl font-semibold text-slate-900">Checkout</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Checkout</h1>
           <p className="mt-2 text-slate-600">Your cart is empty. Add items before checkout.</p>
           <Link href="/" className="mt-4 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white">
             Back to shopping
@@ -156,7 +156,7 @@ export default function CheckoutPage() {
     return (
       <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
         <section className="lux-panel p-6">
-          <h1 className="text-3xl font-semibold text-slate-900">Login required</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Login required</h1>
           <p className="mt-2 text-sm text-slate-600">
             Please login to place orders, track delivery, and reorder from purchase history.
           </p>
@@ -176,8 +176,8 @@ export default function CheckoutPage() {
   return (
     <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
       <section className="lux-panel p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold text-slate-900">Checkout</h1>
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Checkout</h1>
           <p className="text-sm text-slate-500">Step {step} of 2</p>
         </div>
 
@@ -241,7 +241,7 @@ export default function CheckoutPage() {
             <button
               disabled={!isFormValid}
               onClick={() => setStep(2)}
-              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+              className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 sm:w-auto"
             >
               Continue to Payment
             </button>
@@ -286,14 +286,14 @@ export default function CheckoutPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setStep(1)}
-                className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700"
+                className="w-full rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 sm:w-auto"
               >
                 Back
               </button>
               <button
                 onClick={handlePlaceOrder}
                 disabled={loading}
-                className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 sm:w-auto"
               >
                 {loading
                   ? "Processing..."

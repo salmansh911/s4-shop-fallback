@@ -28,7 +28,7 @@ export default function CartPage() {
     <main className="mx-auto max-w-[1520px] p-3 pb-8 sm:p-6">
       <section className="lux-panel p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-3xl font-semibold text-slate-900">Shopping Cart</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Shopping Cart</h1>
           <Link href="/" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">
             Continue Shopping
           </Link>
@@ -48,11 +48,11 @@ export default function CartPage() {
                     <div className="grid gap-3 sm:grid-cols-[82px_1fr_auto] sm:items-center">
                       <img src={item.image_url} alt={item.name} className="h-20 w-20 rounded-xl object-cover" />
                       <div>
-                        <p className="font-semibold text-slate-900">{item.name}</p>
+                        <p className="break-words font-semibold text-slate-900">{item.name}</p>
                         <p className="text-sm text-slate-500">{item.unit}</p>
                         <p className="mt-1 text-sm font-medium text-slate-900">{money(item.price)}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 sm:justify-end">
                         <button
                           className="h-9 w-9 rounded-full border border-slate-300"
                           onClick={() => updateQty(item.product_id, item.qty - 1)}

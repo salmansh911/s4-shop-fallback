@@ -130,7 +130,7 @@ export default function OrderPage() {
     return (
       <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
         <section className="lux-panel p-6 text-center">
-          <h1 className="text-3xl font-semibold text-slate-900">Order not available</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Order not available</h1>
           <p className="mt-2 text-sm text-red-600">{error}</p>
           <Link href="/orders" className="mt-4 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white">
             Go to My Orders
@@ -144,7 +144,7 @@ export default function OrderPage() {
     return (
       <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
         <section className="lux-panel p-6 text-center">
-          <h1 className="text-3xl font-semibold text-slate-900">Order not found</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Order not found</h1>
           <p className="mt-2 text-sm text-slate-600">This order is not available for your account.</p>
           <Link href="/orders" className="mt-4 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white">
             Go to My Orders
@@ -158,8 +158,8 @@ export default function OrderPage() {
     <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
       <section className="lux-panel p-5 sm:p-6">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <h1 className="text-3xl font-semibold text-slate-900">Order confirmed!</h1>
-          <p className="mt-1 text-sm text-slate-700">Order #{order.order_number}</p>
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Order confirmed!</h1>
+          <p className="mt-1 break-words text-sm text-slate-700">Order #{order.order_number}</p>
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
@@ -182,9 +182,9 @@ export default function OrderPage() {
             <h2 className="text-lg font-semibold text-slate-900">Order details</h2>
             <div className="mt-3 space-y-2 text-sm">
               {order.items.map((item) => (
-                <p key={item.product_id} className="flex justify-between">
-                  <span>{item.name} x {item.qty}</span>
-                  <strong>{money(item.qty * item.unit_price)}</strong>
+                <p key={item.product_id} className="flex items-start justify-between gap-3">
+                  <span className="break-words">{item.name} x {item.qty}</span>
+                  <strong className="shrink-0">{money(item.qty * item.unit_price)}</strong>
                 </p>
               ))}
             </div>

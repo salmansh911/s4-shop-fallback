@@ -77,7 +77,7 @@ export default function ProductExperience({ product, related }: ProductExperienc
               <img
                 src={images[activeIndex]}
                 alt={product.name}
-                className="h-[420px] w-full object-cover transition duration-500 group-hover:scale-110"
+                className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-110 sm:h-[420px]"
               />
               <div className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
                 Hover to zoom
@@ -87,7 +87,7 @@ export default function ProductExperience({ product, related }: ProductExperienc
 
           <div className="order-3 p-5 sm:p-7">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Product Detail</p>
-            <h2 className="mt-2 text-5xl font-semibold leading-[1.02] text-slate-900">{product.name}</h2>
+            <h2 className="mt-2 text-3xl font-semibold leading-[1.02] text-slate-900 sm:text-5xl">{product.name}</h2>
             <p className="mt-4 text-sm leading-relaxed text-slate-600">{product.description}</p>
             {idealFor ? (
               <p className="mt-2 text-sm text-slate-700"><span className="font-semibold">Ideal for:</span> {idealFor}</p>
@@ -153,7 +153,7 @@ export default function ProductExperience({ product, related }: ProductExperienc
       </article>
 
       <div className="fixed inset-x-3 bottom-3 z-40 sm:inset-x-6">
-        <div className="mx-auto flex max-w-[1520px] items-center justify-between gap-3 rounded-2xl border border-slate-300/90 bg-white/95 px-4 py-3 shadow-[0_12px_26px_rgba(20,40,70,0.16)] backdrop-blur">
+        <div className="mx-auto flex max-w-[1520px] flex-col gap-3 rounded-2xl border border-slate-300/90 bg-white/95 px-4 py-3 shadow-[0_12px_26px_rgba(20,40,70,0.16)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Ready to checkout</p>
             <p className="text-sm text-slate-700">Total: {money(total)} | Full pay or COD available</p>
@@ -161,7 +161,7 @@ export default function ProductExperience({ product, related }: ProductExperienc
           <AddToCartButton
             product={product}
             qty={qty}
-            className="shrink-0 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white"
+            className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white sm:w-auto sm:shrink-0"
             label="Secure Order"
           />
         </div>

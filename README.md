@@ -60,6 +60,7 @@ Set production values in `.env.local`:
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `MEDUSA_ADMIN_AUTH_MODE=auto` (when switching provider to Medusa)
 
 Then deploy:
 

@@ -70,13 +70,13 @@ export default function OrdersPage() {
   return (
     <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
       <section className="lux-panel p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-3xl font-semibold text-slate-900">My Orders</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">My Orders</h1>
           <Link href="/" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">
             Back to Home
           </Link>
         </div>
-        {userId ? <p className="mt-2 text-xs text-slate-500">Account: {userId}</p> : null}
+        {userId ? <p className="mt-2 break-all text-xs text-slate-500">Account: {userId}</p> : null}
 
         {loading ? <p className="mt-4 text-sm text-slate-600">Loading orders...</p> : null}
         {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
@@ -92,7 +92,7 @@ export default function OrdersPage() {
               <article key={order.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">#{order.order_number}</p>
+                    <p className="break-words text-sm font-semibold text-slate-900">#{order.order_number}</p>
                     <p className="text-xs text-slate-500">Delivery: {order.delivery_date}</p>
                   </div>
                   <div className="text-right text-sm">

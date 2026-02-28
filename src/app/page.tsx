@@ -62,7 +62,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span>Live stock updates</span>
               <span>Secure checkout</span>
             </div>
-            <span className="text-right">Contact us at sales@s4trading.com or +971589615504 for any enquiries.</span>
+            <span className="w-full break-words text-left sm:w-auto sm:text-right">
+              Contact us at sales@s4trading.com or +971589615504 for any enquiries.
+            </span>
           </div>
         </div>
 
@@ -78,8 +80,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 priority
               />
               <div>
-                <h1 className="text-3xl font-semibold text-slate-900 sm:text-[2.1rem]">Commerce</h1>
-                <p className="text-sm text-slate-500">Ordering for restaurant and wholesalers</p>
+                <h1 className="text-2xl font-semibold text-slate-900 sm:text-[2.1rem]">Commerce</h1>
+                <p className="text-xs text-slate-500 sm:text-sm">Ordering for restaurant and wholesalers</p>
               </div>
             </div>
 
@@ -91,7 +93,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
               <AuthButton />
               <CartBadge />
             </div>
@@ -112,7 +114,7 @@ function ScreenNav({ current }: { current: Screen }) {
         <Link
           key={tab.key}
           href={href(tab.key)}
-          className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+          className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition sm:px-4 ${
             current === tab.key
               ? "bg-slate-900 text-white shadow-sm"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -129,7 +131,7 @@ function ProductGrid({ title, products }: { title: string; products: Product[] }
   return (
     <article className="lux-panel p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-2xl font-semibold text-slate-900">{title}</h3>
+        <h3 className="text-xl font-semibold text-slate-900 sm:text-2xl">{title}</h3>
         <Link href={href("catalog")} className="text-sm font-semibold text-primary">
           View all
         </Link>
@@ -204,7 +206,7 @@ function Footer() {
   return (
     <footer className="mt-6 grid gap-3 md:grid-cols-3">
       <article className="lux-panel p-5 md:col-span-2">
-        <h4 className="text-2xl font-semibold text-slate-900">Commerce</h4>
+        <h4 className="text-xl font-semibold text-slate-900 sm:text-2xl">Commerce</h4>
         <p className="mt-2 text-sm text-slate-600">A focused ordering platform for Ramadan restaurant supply.</p>
       </article>
       <article className="lux-panel p-5">
@@ -231,29 +233,29 @@ function HomeScreen({ products }: { products: Product[] }) {
       <article className="lux-panel overflow-hidden p-4 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
           <div className="overflow-hidden rounded-2xl bg-slate-100">
-            <img src={featured?.image_url} alt={featured?.name} className="h-full min-h-[290px] w-full object-cover" />
+            <img src={featured?.image_url} alt={featured?.name} className="h-full min-h-[220px] w-full object-cover sm:min-h-[290px]" />
           </div>
           <div className="flex flex-col justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-primary">Featured Ramadan Item</p>
-              <h2 className="mt-2 text-4xl font-semibold leading-tight text-slate-900">{featured?.name ?? "Featured product"}</h2>
+              <h2 className="mt-2 text-2xl font-semibold leading-tight text-slate-900 sm:text-4xl">{featured?.name ?? "Featured product"}</h2>
               <ul className="mt-3 space-y-1 text-sm text-slate-700">
                 <li>Ideal for: {featuredCopy?.idealFor ?? "High-volume kitchens and iftar prep teams"}</li>
                 <li>Dish ideas: {featuredCopy?.dishIdeas ?? "Iftar platter, family meal packs, catering trays"}</li>
               </ul>
-              <p className="mt-4 text-3xl font-semibold text-slate-900">{featured ? money(featured.price) : "AED --"}</p>
+              <p className="mt-4 text-2xl font-semibold text-slate-900 sm:text-3xl">{featured ? money(featured.price) : "AED --"}</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
               {featured ? (
                 <AddToCartButton
                   product={featured}
-                  className="btn-primary"
+                  className="btn-primary w-full sm:w-auto"
                 />
               ) : null}
-              <Link href={href("catalog")} className="btn-secondary">
+              <Link href={href("catalog")} className="btn-secondary w-full sm:w-auto">
                 Browse catalog
               </Link>
-              <Link href={href("cart")} className="btn-ghost">
+              <Link href={href("cart")} className="btn-ghost w-full sm:w-auto">
                 View cart
               </Link>
             </div>
@@ -275,7 +277,7 @@ function CatalogScreen({ products }: { products: Product[] }) {
     <section className="space-y-4">
       <article className="lux-panel p-5">
         <p className="text-xs uppercase tracking-[0.18em] text-primary">Active catalog</p>
-        <h2 className="mt-1 text-3xl font-semibold text-slate-900">Ramadan Collection</h2>
+        <h2 className="mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">Ramadan Collection</h2>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="signal-chip">Frozen</span>
           <span className="signal-chip">Beverages</span>
@@ -294,8 +296,8 @@ function CatalogScreen({ products }: { products: Product[] }) {
               </div>
               <div className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-xl font-semibold text-slate-900">{product.name}</h2>
-                  <span className="text-lg font-semibold text-slate-900">{money(product.price)}</span>
+                  <h2 className="text-lg font-semibold text-slate-900 sm:text-xl">{product.name}</h2>
+                  <span className="shrink-0 text-base font-semibold text-slate-900 sm:text-lg">{money(product.price)}</span>
                 </div>
                 <p className="text-sm text-slate-500">{product.description}</p>
                 {copy.idealFor ? (

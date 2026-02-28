@@ -139,7 +139,7 @@ export default function AuthPage() {
   return (
     <main className="mx-auto max-w-[520px] p-3 pb-8 sm:p-6">
       <section className="lux-panel p-6">
-        <h1 className="text-3xl font-semibold text-slate-900">Login / Register</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Login / Register</h1>
         <p className="mt-2 text-sm text-slate-600">Use a magic link to continue checkout and manage orders.</p>
 
         <div className="mt-5 space-y-3">

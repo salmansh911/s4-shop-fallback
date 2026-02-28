@@ -16,6 +16,7 @@ function env() {
   return {
     baseUrl: process.env.MEDUSA_BACKEND_URL,
     adminApiKey: process.env.MEDUSA_ADMIN_API_KEY,
+    adminAuthMode: (process.env.MEDUSA_ADMIN_AUTH_MODE || "auto").toLowerCase(),
     publishableKey: process.env.MEDUSA_PUBLISHABLE_KEY,
     regionId: process.env.MEDUSA_REGION_ID,
     salesChannelId: process.env.MEDUSA_SALES_CHANNEL_ID,
@@ -42,19 +43,62 @@ async function medusaAdminRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T | null> {
-  const { baseUrl, adminApiKey } = env();
+  const { baseUrl, adminApiKey, adminAuthMode } = env();
   if (!baseUrl || !adminApiKey) return null;
 
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "x-medusa-access-token": adminApiKey,
-      Authorization: `Bearer ${adminApiKey}`,
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store",
-  });
+  const method = init?.method ?? "GET";
+  const body = init?.body;
+
+  const makeInit = (
+    authHeader: string,
+    includeLegacyHeader: boolean,
+  ): RequestInit => {
+    const headers = new Headers(init?.headers);
+    headers.set("Content-Type", "application/json");
+    headers.set("Authorization", authHeader);
+    if (includeLegacyHeader) {
+      headers.set("x-medusa-access-token", adminApiKey);
+    }
+
+    const requestInit: RequestInit = {
+      method,
+      headers,
+      cache: "no-store",
+      signal: init?.signal,
+      credentials: init?.credentials,
+      mode: init?.mode,
+      redirect: init?.redirect,
+      referrer: init?.referrer,
+      referrerPolicy: init?.referrerPolicy,
+      integrity: init?.integrity,
+      keepalive: init?.keepalive,
+    };
+
+    if (method !== "GET" && method !== "HEAD" && body !== undefined) {
+      requestInit.body = body;
+    }
+
+    return requestInit;
+  };
+
+  const bearerInit = makeInit(`Bearer ${adminApiKey}`, true);
+  const basicInit = makeInit(`Basic ${adminApiKey}`, false);
+
+  const preferredInit =
+    adminAuthMode === "basic"
+      ? basicInit
+      : adminAuthMode === "bearer"
+        ? bearerInit
+        : bearerInit;
+
+  let response = await fetch(`${baseUrl}${path}`, preferredInit);
+
+  if (
+    adminAuthMode === "auto" &&
+    (response.status === 401 || response.status === 403)
+  ) {
+    response = await fetch(`${baseUrl}${path}`, basicInit);
+  }
 
   if (!response.ok) return null;
   return (await response.json()) as T;
