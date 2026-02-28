@@ -2,6 +2,7 @@ import type {
   CheckoutItemInput,
   DeliveryDetailsInput,
 } from "@/lib/commerce/types";
+import { getOptionalEnv, getRequiredEnv, isProductionRuntime } from "@/lib/env";
 
 export type CheckoutAttempt = {
   id: string;
@@ -19,10 +20,15 @@ export type CheckoutAttempt = {
 };
 
 function env() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceRoleKey = getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = getOptionalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const url = getOptionalEnv("NEXT_PUBLIC_SUPABASE_URL");
+  if (isProductionRuntime()) {
+    if (!url) getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
+    if (!serviceRoleKey && !anonKey) getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+  }
   return {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    url,
     key: serviceRoleKey || anonKey,
   };
 }
@@ -108,6 +114,13 @@ export async function markCheckoutAttemptPaid(
   attemptId: string,
   payload: { medusaOrderId: string; stripeSessionId?: string },
 ) {
+  const existing = await getCheckoutAttemptById(attemptId);
+  if (!existing) return null;
+  if (existing.status === "paid" && existing.medusa_order_id) {
+    return existing;
+  }
+  if (existing.status === "failed") return null;
+
   const rows = await requestWrite<CheckoutAttempt[]>(
     `checkout_attempts?id=eq.${encodeURIComponent(attemptId)}`,
     "PATCH",
@@ -122,6 +135,10 @@ export async function markCheckoutAttemptPaid(
 }
 
 export async function markCheckoutAttemptFailed(attemptId: string) {
+  const existing = await getCheckoutAttemptById(attemptId);
+  if (!existing) return null;
+  if (existing.status === "paid") return existing;
+
   const rows = await requestWrite<CheckoutAttempt[]>(
     `checkout_attempts?id=eq.${encodeURIComponent(attemptId)}`,
     "PATCH",

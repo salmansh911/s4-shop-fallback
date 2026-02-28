@@ -1,7 +1,19 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveCommerceProviderName, markOrderPaid } from "@/lib/commerce";
-import { finalizeMedusaCheckoutAttemptById } from "@/lib/commerce/providers/medusa";
+import {
+  getActiveCommerceProviderName,
+  markOrderPaid,
+} from "@/lib/commerce";
+import {
+  finalizeMedusaCheckoutAttemptById,
+  getCheckoutAttemptByIdForRead,
+} from "@/lib/commerce/providers/medusa";
+import { sendOrderConfirmationEmail } from "@/lib/email/transactional";
+import {
+  isStripeEventProcessed,
+  recordMarketingEvent,
+  recordStripeWebhookEvent,
+} from "@/lib/reliability-store";
 
 type StripeWebhookEvent = {
   id: string;
@@ -69,6 +81,9 @@ export async function POST(request: NextRequest) {
     }
 
     const event = JSON.parse(rawPayload) as StripeWebhookEvent;
+    if (await isStripeEventProcessed(event.id)) {
+      return NextResponse.json({ received: true, deduped: true });
+    }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
@@ -78,18 +93,71 @@ export async function POST(request: NextRequest) {
       const orderId = session.metadata?.order_id ?? session.client_reference_id;
 
       if (paid && providerName === "medusa" && attemptId) {
-        await finalizeMedusaCheckoutAttemptById({
+        const finalizedOrderId = await finalizeMedusaCheckoutAttemptById({
           attemptId,
           sessionId: session.id,
         });
+        const attempt = await getCheckoutAttemptByIdForRead(attemptId);
+        if (finalizedOrderId && attempt) {
+          await sendOrderConfirmationEmail({
+            orderId: finalizedOrderId,
+            orderNumber: attempt.order_number,
+            to: attempt.customer_email,
+            paymentMethod: "stripe",
+            deliveryDate: attempt.delivery_details.deliveryDate,
+            amount: attempt.subtotal,
+            items: attempt.items.map((item) => ({
+              name: item.name,
+              qty: item.qty,
+              unitPrice: item.price,
+            })),
+            trackingUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shop.s4trading.com"}/orders/${attempt.id}`,
+            emailType: "stripe_paid",
+          });
+
+          await recordMarketingEvent({
+            eventName: "checkout_completed",
+            userId: attempt.user_id,
+            orderId: finalizedOrderId,
+            metadata: { provider: "stripe", source: "webhook" },
+          });
+        }
       } else if (paid && orderId) {
-        await markOrderPaid(
+        const result = await markOrderPaid(
           orderId,
           { userId: "system", email: null },
           { provider: "stripe", sessionId: session.id },
         );
+        if (result.data) {
+          await sendOrderConfirmationEmail({
+            orderId,
+            orderNumber: result.data.order_number,
+            to: session.metadata?.customer_email || "",
+            paymentMethod: "stripe",
+            deliveryDate: result.data.delivery_date,
+            amount: result.data.total_amount,
+            items: result.data.items.map((item) => ({
+              name: item.name,
+              qty: item.qty,
+              unitPrice: item.unit_price,
+            })),
+            trackingUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://shop.s4trading.com"}/orders/${orderId}`,
+            emailType: "stripe_paid",
+          });
+          await recordMarketingEvent({
+            eventName: "checkout_completed",
+            orderId,
+            metadata: { provider: "stripe", source: "webhook" },
+          });
+        }
       }
     }
+
+    await recordStripeWebhookEvent({
+      eventId: event.id,
+      eventType: event.type,
+      status: event.type === "checkout.session.completed" ? "processed" : "ignored",
+    });
 
     return NextResponse.json({ received: true });
   } catch (error) {

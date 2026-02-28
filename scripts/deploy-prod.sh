@@ -11,6 +11,12 @@ if [[ ! -f ".env.local" ]]; then
 fi
 
 BRANCH="${1:-main}"
+NODE_MAJOR="$(node -v | sed -E 's/^v([0-9]+).*/\1/')"
+
+if [[ "$NODE_MAJOR" != "20" ]]; then
+  echo "Node 20 is required. Current: $(node -v)"
+  exit 1
+fi
 
 echo "[1/5] Updating code from origin/$BRANCH"
 git fetch --all --prune
@@ -32,5 +38,8 @@ fi
 
 echo "[5/5] Saving PM2 state"
 pm2 save
+
+echo "[diag] Runtime checks"
+curl -sS "http://127.0.0.1:3100/api/diagnostics" || true
 
 echo "Deploy complete."

@@ -64,6 +64,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (resolvedFromAttempt) {
         targetOrderId = resolvedFromAttempt;
       } else {
+        const attempt = await getCheckoutAttemptByIdForRead(id);
+        if (attempt && attempt.user_id !== user.id) {
+          return NextResponse.json({ error: "Order not found" }, { status: 404 });
+        }
         const finalized = await finalizeMedusaCheckoutAttemptById({
           attemptId: id,
           sessionId: body.sessionId,

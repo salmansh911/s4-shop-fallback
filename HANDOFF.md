@@ -69,6 +69,21 @@
 3. Provide exact commands + smoke-test checklist.
 4. Avoid non-essential UI churn until P0 is green.
 
+## Reliability Additions (2026-02-28)
+- New migration: `supabase/migrations/20260228_reliability_marketing.sql`
+  - `stripe_webhook_events` for webhook idempotency
+  - `order_email_events` for one-time confirmation sends
+  - `marketing_leads` and `marketing_events`
+  - `checkout_attempts` bootstrap table + indexes
+- New diagnostics endpoint: `GET /api/diagnostics`
+- New marketing endpoints:
+  - `POST /api/marketing/lead`
+  - `POST /api/marketing/event`
+  - `GET /api/marketing/metrics`
+- Product operations policy: Medusa Admin is source of truth.
+  - Validation command: `npm run check:medusa:store`
+  - Sales channel required: `S4 B2B`
+
 ## Copy/Paste Prompt For New Chat
 ```text
 You are continuing an existing S4 commerce build. Do not redesign from scratch.
@@ -111,4 +126,3 @@ Constraints:
 - Preserve existing working flows.
 - Provide concrete file-level edits and final smoke test checklist.
 ```
-

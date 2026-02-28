@@ -5,10 +5,10 @@ import type {
   CheckoutInput,
   PaymentContext,
 } from "@/lib/commerce/types";
+import { getCommerceProviderName } from "@/lib/env";
 
 export function getActiveCommerceProviderName() {
-  const provider = (process.env.COMMERCE_PROVIDER || "supabase").toLowerCase();
-  return provider === "medusa" ? "medusa" : "supabase";
+  return getCommerceProviderName();
 }
 
 export function getCommerceProvider() {

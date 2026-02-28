@@ -10,6 +10,8 @@ import {
 } from "@/lib/checkout-attempts";
 import { resolveMedusaCustomerId } from "@/lib/identity/customer-map";
 import { getAuthenticatedUserFromRequest } from "@/lib/supabase-server";
+import { sendOrderConfirmationEmail } from "@/lib/email/transactional";
+import { recordMarketingEvent } from "@/lib/reliability-store";
 
 type CheckoutBody = {
   items: Array<{
@@ -204,6 +206,7 @@ export async function POST(request: NextRequest) {
           order_number: orderNumber,
           payment_method: "stripe",
           provider: "medusa",
+          customer_email: body.customerEmail,
           subtotal: `${computedSubtotal}`,
           delivery_date: body.deliveryDetails.deliveryDate,
         },
@@ -242,6 +245,33 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.paymentMethod === "cod") {
+      try {
+        await sendOrderConfirmationEmail({
+          orderId: checkoutResult.data.orderId,
+          orderNumber: checkoutResult.data.orderNumber,
+          to: body.customerEmail,
+          paymentMethod: "cod",
+          deliveryDate: body.deliveryDetails.deliveryDate,
+          amount: computedSubtotal,
+          items: body.items.map((item) => ({
+            name: item.name,
+            qty: item.qty,
+            unitPrice: item.price,
+          })),
+          trackingUrl: `${origin}/orders/${checkoutResult.data.orderId}`,
+          emailType: "cod_placed",
+        });
+      } catch (error) {
+        console.error("COD confirmation email failed", error);
+      }
+
+      await recordMarketingEvent({
+        eventName: "cod_order_placed",
+        userId: user.id,
+        orderId: checkoutResult.data.orderId,
+        metadata: { provider: providerName },
+      });
+
       return NextResponse.json({
         url:
           checkoutResult.data.url ??
@@ -267,6 +297,7 @@ export async function POST(request: NextRequest) {
         order_number: checkoutResult.data.orderNumber,
         payment_method: "stripe",
         provider: providerName,
+        customer_email: body.customerEmail,
         subtotal: `${computedSubtotal}`,
         delivery_date: body.deliveryDetails.deliveryDate,
       },

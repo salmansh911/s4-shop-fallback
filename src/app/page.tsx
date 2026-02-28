@@ -11,6 +11,8 @@ import {
 import AddToCartButton from "./components/AddToCartButton";
 import AuthButton from "./components/AuthButton";
 import CartBadge from "./components/CartBadge";
+import EventBeacon from "./components/EventBeacon";
+import MarketingLeadForm from "./components/MarketingLeadForm";
 import { getProducts } from "@/lib/commerce";
 import type { Order, Product } from "@/lib/types";
 
@@ -58,14 +60,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <header className="lux-panel overflow-hidden">
         <div className="border-b border-slate-200/80 bg-slate-50/80 px-4 py-2 text-[12px] text-slate-600 sm:px-8">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <Link href={href("catalog")} className="font-medium text-slate-700 underline-offset-2 hover:underline">
-                Live stock updates
-              </Link>
-              <Link href="/checkout" className="font-medium text-slate-700 underline-offset-2 hover:underline">
-                Secure checkout
-              </Link>
-            </div>
             <span className="w-full break-words text-left sm:w-auto sm:text-right">
               Contact us at{" "}
               <a href="mailto:sales@s4trading.com" className="font-medium text-slate-700 underline underline-offset-2">
@@ -226,6 +220,7 @@ function Footer() {
             Premium ordering for restaurant and wholesalers.
           </Link>
         </p>
+        <MarketingLeadForm />
       </article>
       <article className="lux-panel p-5">
         <nav className="space-y-1 text-sm text-slate-600">
@@ -247,6 +242,7 @@ function HomeScreen({ products }: { products: Product[] }) {
 
   return (
     <section className="space-y-4">
+      <EventBeacon eventName="product_view" metadata={{ screen: "home", productCount: activeProducts.length }} />
       <article className="lux-panel overflow-hidden p-4 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr]">
           <div className="overflow-hidden rounded-2xl bg-slate-100">
@@ -292,6 +288,7 @@ function CatalogScreen({ products }: { products: Product[] }) {
 
   return (
     <section className="space-y-4">
+      <EventBeacon eventName="product_view" metadata={{ screen: "catalog", productCount: catalogProducts.length }} />
       <article className="lux-panel p-5">
         <p className="text-xs uppercase tracking-[0.18em] text-primary">Active catalog</p>
         <h2 className="mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">Ramadan Collection</h2>

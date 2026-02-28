@@ -1,6 +1,7 @@
 import { mockInsights } from "./mock-seed";
 import { resolveProductImageUrl } from "./product-images";
 import type { InsightCard, Order, Product } from "./types";
+import { getOptionalEnv, getRequiredEnv, isProductionRuntime } from "@/lib/env";
 
 type DataSource = "supabase" | "fallback";
 type DataError = "SUPABASE_UNAVAILABLE";
@@ -11,10 +12,19 @@ type DataResult<T> = {
 };
 
 function env() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceRoleKey = getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = getOptionalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const url = getOptionalEnv("NEXT_PUBLIC_SUPABASE_URL");
+
+  if (isProductionRuntime()) {
+    if (!url) getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
+    if (!serviceRoleKey && !anonKey) {
+      getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+    }
+  }
+
   return {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    url,
     key: serviceRoleKey || anonKey,
   };
 }

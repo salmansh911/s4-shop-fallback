@@ -3,6 +3,7 @@
 import type { Product } from "@/lib/types";
 import { useCartStore } from "@/lib/cart-store";
 import { useToastStore } from "@/lib/toast-store";
+import { trackMarketingEvent } from "@/lib/analytics/events";
 
 type AddToCartButtonProps = {
   product: Product;
@@ -26,6 +27,12 @@ export default function AddToCartButton({
       onClick={() => {
         addItem(product, qty);
         push(`${product.name} added to cart`);
+        void trackMarketingEvent("add_to_cart", {
+          productId: product.id,
+          productName: product.name,
+          qty,
+          unitPrice: product.price,
+        });
       }}
     >
       {label}

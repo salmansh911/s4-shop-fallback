@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cartSubtotal, useCartStore } from "@/lib/cart-store";
 import { getSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/supabase-browser";
+import EventBeacon from "@/app/components/EventBeacon";
 
 type DeliveryForm = {
   restaurantName: string;
@@ -175,6 +176,7 @@ export default function CheckoutPage() {
 
   return (
     <main className="mx-auto max-w-[980px] p-3 pb-8 sm:p-6">
+      <EventBeacon eventName="checkout_started" metadata={{ itemCount: items.length, subtotal }} />
       <section className="lux-panel p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-1">
           <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">Checkout</h1>

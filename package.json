@@ -2,11 +2,15 @@
   "name": "shop",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20 <21"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:medusa:store": "./scripts/check-medusa-store.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
