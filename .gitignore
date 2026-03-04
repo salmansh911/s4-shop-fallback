@@ -44,3 +44,5 @@ next-env.d.ts
 # local backup artifacts
 node_modules_corrupt_*
 package-lock 2.json
+ecosystem.config.cjs.bak*
+nul
